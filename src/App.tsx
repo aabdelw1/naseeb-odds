@@ -39,12 +39,16 @@ export default function App() {
             </span>
           </div>
 
-          <PeopleCircle layout={layout} sex={filters.sex} />
+          {count === 0 ? (
+            <p className="empty">Nobody left. Maybe lower those standards a little 😅</p>
+          ) : (
+            <PeopleCircle layout={layout} sex={filters.sex} />
+          )}
         </section>
       </main>
 
       <footer className="footer">
-        Rough estimates based on Pew Research Center (2017). Just for fun.
+        Rough estimates: totals from Pew Research Center (2017); marital and income splits approximated. Just for fun.
       </footer>
     </div>
   )

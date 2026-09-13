@@ -4,6 +4,10 @@ export function formatCount(n: number): string {
   return numberFormat.format(n)
 }
 
+export function formatIncome(minIncome: number): string {
+  return minIncome === 0 ? 'Any' : `$${minIncome / 1000}k+`
+}
+
 export function formatPercent(fraction: number): string {
   const pct = fraction * 100
   if (pct === 0) return '0%'
