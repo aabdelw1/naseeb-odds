@@ -11,7 +11,7 @@ import {
   INCOME_STEPS,
   type Filters,
 } from '../lib/filters'
-import { fromSearchParams, toSearchParams } from '../lib/urlState'
+import { changedSettings, fromSearchParams, toSearchParams } from '../lib/urlState'
 import { seededRandom } from './helpers'
 
 const random = seededRandom(20260914)
@@ -93,6 +93,21 @@ describe('search links', () => {
   it('keep chip selections in a fixed order', () => {
     const { filters } = fromSearchParams(new URLSearchParams('ethnicity=desi,arab,unknown'))
     expect(filters.ethnicities).toEqual(['arab', 'desi'])
+  })
+
+  it('report which settings changed between two searches', () => {
+    const before = { filters: DEFAULT_FILTERS, estimate: 'realistic' as const }
+    const after = {
+      filters: { ...DEFAULT_FILTERS, sex: 'female' as const, ageMin: 23, ageMax: 28 },
+      estimate: 'generous' as const,
+    }
+    expect(changedSettings(before, after)).toEqual([
+      { setting: 'sex', value: 'female' },
+      { setting: 'age', value: '23-28' },
+      { setting: 'estimate', value: 'generous' },
+    ])
+    expect(changedSettings(after, before).map((change) => change.value)).toEqual(['default', 'default', 'default'])
+    expect(changedSettings(after, after)).toEqual([])
   })
 
   it('leave out the hidden Bay Area option', () => {

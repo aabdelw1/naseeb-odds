@@ -5,9 +5,10 @@ import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
 import { ShareButton } from './components/ShareButton'
 import type { EstimateLevel } from './data/estimates'
+import { resultBucket, track, trackSettled } from './lib/analytics'
 import { countActive, countMatching, totalPopulation, type Filters } from './lib/filters'
 import { formatCount, formatPercent } from './lib/format'
-import { fromSearchParams, toSearchParams } from './lib/urlState'
+import { changedSettings, fromSearchParams, toSearchParams, type SearchState } from './lib/urlState'
 import { useIsVisible } from './lib/useIsVisible'
 import { useTweenedNumber } from './lib/useTweenedNumber'
 
@@ -26,18 +27,34 @@ export default function App() {
   const displayedCount = formatCount(Math.round(tweenedCount))
   const countRef = useRef<HTMLDivElement>(null)
   const countVisible = useIsVisible(countRef)
+  const activeFilters = Object.values(countActive(filters)).reduce((sum, active) => sum + active, 0)
 
   useEffect(() => {
-    const params = toSearchParams({ filters, estimate })
+    const settings = [...toSearchParams(initial).keys()].length
+    if (settings > 0) track('shared-link-open', { settings })
+  }, [initial])
+
+  const previousSearch = useRef<SearchState>(initial)
+  useEffect(() => {
+    const search: SearchState = { filters, estimate }
+    const params = toSearchParams(search)
     if (new URLSearchParams(window.location.search).has('debug')) params.set('debug', '')
     const query = params.toString()
     window.history.replaceState(null, '', query ? `${window.location.pathname}?${query}` : window.location.pathname)
-  }, [filters, estimate])
 
-  const filtered = Object.values(countActive(filters)).some((active) => active > 0)
-  const shareText = filtered
-    ? `Only ${formatCount(count)} Muslims in ${place} match my standards 😅 What are your odds?`
-    : `There are about ${formatCount(total)} Muslims in ${place}. How many match your standards?`
+    // Anonymous usage stats: which settings people change (sent once a slider settles) and
+    // roughly how many people the search leaves.
+    const changes = changedSettings(previousSearch.current, search)
+    previousSearch.current = search
+    if (changes.length === 0) return
+    for (const { setting, value } of changes) trackSettled(`setting:${setting}`, 'filter', { setting, value })
+    trackSettled('search', 'search', { result: resultBucket(count), filters: activeFilters }, 2000)
+  }, [filters, estimate, count, activeFilters])
+
+  const shareText =
+    activeFilters > 0
+      ? `Only ${formatCount(count)} Muslims in ${place} match my standards 😅 What are your odds?`
+      : `There are about ${formatCount(total)} Muslims in ${place}. How many match your standards?`
 
   return (
     <div className="app">

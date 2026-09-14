@@ -26,6 +26,15 @@
     <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
 
+    <!-- Anonymous analytics (Umami). Only counts naseebodds.com; filter values in the address stay out of page views. -->
+    <script
+      defer
+      src="https://cloud.umami.is/script.js"
+      data-website-id="a13d3d0a-55c7-4953-b33d-4b30cf211f59"
+      data-domains="naseebodds.com"
+      data-exclude-search="true"
+    ></script>
+
     <!-- Structured data for search engines. The FAQ must match the questions in the page body (src/test/seo.test.ts checks). -->
     <script type="application/ld+json">
       {
@@ -74,7 +83,7 @@
                 "name": "Can I share my search?",
                 "acceptedAnswer": {
                   "@type": "Answer",
-                  "text": "Yes. Your filters are saved in the page address, so you can copy the link or use the Share button to send the exact search to friends and family. Nothing is stored on a server."
+                  "text": "Yes. Your filters are saved in the page address, so you can copy the link or use the Share button to send the exact search to friends and family."
                 }
               }
             ]
@@ -105,7 +114,7 @@
       <p>Pew Research Center surveys of US Muslims (2017 and 2023–24), the ISPU American Muslim Poll (2025), the US Religion Census (2020), the US Census Bureau and National Center for Education Statistics, CDC height measurements, and Bureau of Labor Statistics earnings data. Traits are modeled together, so combinations stay realistic.</p>
 
       <h3>Can I share my search?</h3>
-      <p>Yes. Your filters are saved in the page address, so you can copy the link or use the Share button to send the exact search to friends and family. Nothing is stored on a server.</p>
+      <p>Yes. Your filters are saved in the page address, so you can copy the link or use the Share button to send the exact search to friends and family.</p>
     </section>
 
     <script type="module" src="/src/main.tsx"></script>

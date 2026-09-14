@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { track } from '../lib/analytics'
 
 interface Props {
   /** Message sent along with the link to the current search. */
@@ -14,6 +15,7 @@ export function ShareButton({ text }: Props) {
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Naseeb Odds', text, url })
+        track('share', { method: 'share sheet' })
         return
       } catch (error) {
         // Closing the share sheet isn't a failure; anything else falls back to copying.
@@ -22,6 +24,7 @@ export function ShareButton({ text }: Props) {
     }
     try {
       await navigator.clipboard.writeText(`${text} ${url}`)
+      track('share', { method: 'copied link' })
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {

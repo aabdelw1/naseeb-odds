@@ -135,6 +135,24 @@ To get indexed:
 2. Submit `https://naseebodds.com/sitemap.xml`.
 3. Do the same in [Bing Webmaster Tools](https://www.bing.com/webmasters).
 
+## Analytics
+
+Anonymous usage stats go to [Umami Cloud](https://cloud.umami.is) (cookie-free, so no consent banner). The script in `index.html` only counts `naseebodds.com`, so local development isn't tracked, and it leaves the search out of page-view URLs.
+
+- **Page views:** automatic, with visitor counts, countries, devices and referrers.
+- **Events** (sent through [`src/lib/analytics.ts`](src/lib/analytics.ts)):
+
+| Event | Data | When |
+| --- | --- | --- |
+| `filter` | `setting`, `value` (as in the link, or `default`) | A filter or the estimate changes; sliders report once they settle |
+| `search` | `result` (size range, e.g. `100–999`), `filters` (how many are on) | Two seconds after the search stops changing |
+| `tab` | `tab` | A filter tab is opened |
+| `reset` | none | Reset filters is clicked |
+| `share` | `method` (`share sheet` or `copied link`) | A search is shared |
+| `shared-link-open` | `settings` (how many are in the link) | Someone opens a shared search link |
+
+When running locally, events are logged to the console instead.
+
 ## Deploy
 
 The site deploys to GitHub Pages at https://naseebodds.com via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:

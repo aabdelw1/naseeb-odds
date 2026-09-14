@@ -66,6 +66,16 @@ export function fromSearchParams(params: URLSearchParams): SearchState {
   return { filters, estimate: oneOf(params.get('estimate'), ESTIMATE_LEVELS) ?? 'realistic' }
 }
 
+/** Settings that differ between two searches, with their new link value ("default" when set back). */
+export function changedSettings(before: SearchState, after: SearchState): { setting: string; value: string }[] {
+  const was = toSearchParams(before)
+  const now = toSearchParams(after)
+  const keys = new Set([...was.keys(), ...now.keys()])
+  return [...keys]
+    .filter((key) => was.get(key) !== now.get(key))
+    .map((key) => ({ setting: key, value: now.get(key) ?? 'default' }))
+}
+
 /** Writes a chip selection in its canonical order, or "none" when empty; skips it when everything is selected. */
 function setList<T extends string>(params: URLSearchParams, key: string, selected: T[], all: T[]): void {
   if (all.every((value) => selected.includes(value))) return

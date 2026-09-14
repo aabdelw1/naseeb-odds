@@ -15,6 +15,7 @@ import {
   type Region,
   type SexFilter,
 } from '../lib/filters'
+import { track } from '../lib/analytics'
 import { formatHeight, formatHeightRange, formatIncome } from '../lib/format'
 
 interface Option<T> {
@@ -99,13 +100,18 @@ export function FilterPanel({ filters, onChange }: Props) {
   const update = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
   const active = countActive(filters)
 
+  const openTab = (next: FilterTab) => {
+    setTab(next)
+    track('tab', { tab: next })
+  }
+
   // Arrow keys move between tabs, per the ARIA tabs pattern.
   const onTabKeyDown = (e: KeyboardEvent) => {
     const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
     if (step === 0) return
     const index = TABS.findIndex((t) => t.value === tab)
     const next = TABS[(index + step + TABS.length) % TABS.length].value
-    setTab(next)
+    openTab(next)
     document.getElementById(`tab-${next}`)?.focus()
   }
 
@@ -122,7 +128,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             aria-controls={`panel-${t.value}`}
             tabIndex={tab === t.value ? 0 : -1}
             className="tab"
-            onClick={() => setTab(t.value)}
+            onClick={() => openTab(t.value)}
           >
             {t.label}
             {active[t.value] > 0 && <span className="badge">{active[t.value]}</span>}
@@ -263,7 +269,14 @@ export function FilterPanel({ filters, onChange }: Props) {
         <p className="hint">Prayer and mosque filters only count adults.</p>
       </TabPanel>
 
-      <button type="button" className="reset" onClick={() => onChange(DEFAULT_FILTERS)}>
+      <button
+        type="button"
+        className="reset"
+        onClick={() => {
+          track('reset')
+          onChange(DEFAULT_FILTERS)
+        }}
+      >
         Reset filters
       </button>
     </aside>
