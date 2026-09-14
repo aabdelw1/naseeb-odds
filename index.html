@@ -3,30 +3,111 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Naseeb Odds</title>
-    <meta
-      name="description"
-      content="What are the chances of finding your match in the US? Filter US Muslims by age, ethnicity, education, deen and more, and watch the circle shrink. Just for fun."
-    />
+    <title>Naseeb Odds – Muslim Marriage Odds Calculator</title>
+    <meta name="description" content="A just-for-fun Muslim marriage odds calculator. Filter US Muslims by age, ethnicity, education, deen and more, and watch your pool of matches shrink." />
+    <link rel="canonical" href="https://naseebodds.com/" />
     <meta name="theme-color" content="#1d2735" />
 
     <!-- PNG icons: iPhones and link previews ignore SVG and data-URI favicons. -->
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
+    <link rel="manifest" href="%BASE_URL%site.webmanifest" />
 
     <!-- Link previews (iMessage, WhatsApp, social). Crawlers need absolute URLs; update these if the domain changes. -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Naseeb Odds" />
-    <meta property="og:title" content="Naseeb Odds" />
-    <meta property="og:description" content="What are the chances of finding your match in the US? Muslim marriage odds, just for fun." />
+    <meta property="og:title" content="Naseeb Odds – What are the chances of finding your match?" />
+    <meta property="og:description" content="Filter every Muslim in the US by what you're looking for and watch the circle shrink. Muslim marriage odds, just for fun." />
     <meta property="og:url" content="https://naseebodds.com/" />
     <meta property="og:image" content="https://naseebodds.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Naseeb Odds: a crescent moon above the question, what are the chances of finding your match in the US?" />
+    <meta property="og:locale" content="en_US" />
     <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Structured data for search engines. The FAQ must match the questions in the page body (src/test/seo.test.ts checks). -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "name": "Naseeb Odds",
+            "url": "https://naseebodds.com/",
+            "description": "A just-for-fun Muslim marriage odds calculator. Filter US Muslims by age, ethnicity, education, deen and more, and watch your pool of matches shrink.",
+            "applicationCategory": "LifestyleApplication",
+            "operatingSystem": "Any",
+            "inLanguage": "en",
+            "image": "https://naseebodds.com/og-image.png",
+            "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+          },
+          {
+            "@type": "FAQPage",
+            "mainEntity": [
+              {
+                "@type": "Question",
+                "name": "How many Muslims live in the United States?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Estimates range from about 3.45 million (Pew Research Center, 2017) to 4.5 million (US Religion Census, 2020), with some newer estimates higher. Naseeb Odds uses 4.5 million by default, and the Conservative and Generous settings show the range."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Is Naseeb Odds a matchmaking or rishta app?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "No. It doesn't collect profiles or introduce anyone. It's a calculator that estimates how many people match a set of preferences, meant for fun and conversation."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Where do the numbers come from?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Pew Research Center surveys of US Muslims (2017 and 2023–24), the ISPU American Muslim Poll (2025), the US Religion Census (2020), the US Census Bureau and National Center for Education Statistics, CDC height measurements, and Bureau of Labor Statistics earnings data. Traits are modeled together, so combinations stay realistic."
+                }
+              },
+              {
+                "@type": "Question",
+                "name": "Can I share my search?",
+                "acceptedAnswer": {
+                  "@type": "Answer",
+                  "text": "Yes. Your filters are saved in the page address, so you can copy the link or use the Share button to send the exact search to friends and family. Nothing is stored on a server."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+
+    <!-- Plain HTML so search engines can read it without running the app. -->
+    <section class="about" aria-labelledby="about-title">
+      <h2 id="about-title">What is Naseeb Odds?</h2>
+      <p>Naseeb Odds is a just-for-fun Muslim marriage odds calculator. It starts with every Muslim in the United States and narrows the pool as you add what you're looking for: brothers or sisters, age, ethnicity, height, marital status, education, income, prayer, sect and more. Every filter shrinks the circle of people, so you can see how rare your perfect match really is.</p>
+
+      <h2>How the numbers work</h2>
+      <p>Instead of multiplying separate percentages, Naseeb Odds models US Muslims so that traits go together the way they do in real life: high earners are mostly degree holders, immigrants are more often married, and young women are more likely than young men to have finished college. The model is tested against every published figure it uses. The results are rough estimates for fun, not facts about any real person.</p>
+
+      <h2>Frequently asked questions</h2>
+      <h3>How many Muslims live in the United States?</h3>
+      <p>Estimates range from about 3.45 million (Pew Research Center, 2017) to 4.5 million (US Religion Census, 2020), with some newer estimates higher. Naseeb Odds uses 4.5 million by default, and the Conservative and Generous settings show the range.</p>
+
+      <h3>Is Naseeb Odds a matchmaking or rishta app?</h3>
+      <p>No. It doesn't collect profiles or introduce anyone. It's a calculator that estimates how many people match a set of preferences, meant for fun and conversation.</p>
+
+      <h3>Where do the numbers come from?</h3>
+      <p>Pew Research Center surveys of US Muslims (2017 and 2023–24), the ISPU American Muslim Poll (2025), the US Religion Census (2020), the US Census Bureau and National Center for Education Statistics, CDC height measurements, and Bureau of Labor Statistics earnings data. Traits are modeled together, so combinations stay realistic.</p>
+
+      <h3>Can I share my search?</h3>
+      <p>Yes. Your filters are saved in the page address, so you can copy the link or use the Share button to send the exact search to friends and family. Nothing is stored on a server.</p>
+    </section>
+
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

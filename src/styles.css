@@ -435,8 +435,56 @@ body {
   color: var(--muted);
 }
 
-.legend {
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   margin-top: 12px;
+}
+
+.share-button {
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  background: rgba(94, 200, 168, 0.12);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 150ms;
+}
+
+.share-button:hover {
+  background: rgba(94, 200, 168, 0.24);
+}
+
+.about {
+  max-width: 760px;
+  margin: 24px auto 0;
+  padding: 0 24px 48px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.about h2 {
+  margin: 32px 0 8px;
+  color: var(--text);
+  font-size: 1.2rem;
+}
+
+.about h3 {
+  margin: 20px 0 4px;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.about p {
+  margin: 0;
+}
+
+.legend {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -506,6 +554,11 @@ body {
 @media (max-width: 760px) {
   .app {
     padding-bottom: 88px;
+  }
+
+  /* Leave room for the floating count bar. */
+  .about {
+    padding-bottom: 96px;
   }
 
   /* On phones the results sit below the filters; keep the count in view. */

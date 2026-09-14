@@ -1,0 +1,54 @@
+import { describe, expect, it } from 'vitest'
+import html from '../../index.html?raw'
+import manifest from '../../public/site.webmanifest?raw'
+import robots from '../../public/robots.txt?raw'
+import sitemap from '../../public/sitemap.xml?raw'
+
+const SITE = 'https://naseebodds.com/'
+
+const first = (pattern: RegExp) => html.match(pattern)?.[1]
+const collapse = (s: string) => s.replace(/\s+/g, ' ').trim()
+
+interface StructuredData {
+  '@graph': { '@type': string; url?: string; mainEntity?: { name: string; acceptedAnswer: { text: string } }[] }[]
+}
+
+describe('SEO', () => {
+  it('has a descriptive title and a search-snippet-length description', () => {
+    const title = first(/<title>([^<]+)<\/title>/) ?? ''
+    expect(title).toContain('Naseeb Odds')
+    expect(title.length).toBeLessThanOrEqual(60)
+    const description = first(/<meta name="description" content="([^"]+)"/) ?? ''
+    expect(description.length).toBeGreaterThanOrEqual(70)
+    expect(description.length).toBeLessThanOrEqual(160)
+  })
+
+  it('points the canonical URL and link previews at the live domain', () => {
+    expect(first(/<link rel="canonical" href="([^"]+)"/)).toBe(SITE)
+    expect(first(/property="og:url" content="([^"]+)"/)).toBe(SITE)
+    expect(first(/property="og:image" content="([^"]+)"/)).toBe(`${SITE}og-image.png`)
+  })
+
+  it('has valid structured data whose FAQ matches the questions shown on the page', () => {
+    const data = JSON.parse(first(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/) ?? '{}') as StructuredData
+    expect(data['@graph'].find((node) => node['@type'] === 'WebApplication')?.url).toBe(SITE)
+    const questions = data['@graph'].find((node) => node['@type'] === 'FAQPage')?.mainEntity ?? []
+    expect(questions.length).toBeGreaterThan(0)
+    const body = collapse(html.slice(html.indexOf('<body>')))
+    for (const question of questions) {
+      expect(body).toContain(`<h3>${question.name}</h3>`)
+      expect(body).toContain(`<p>${question.acceptedAnswer.text}</p>`)
+    }
+  })
+
+  it('lets crawlers find the sitemap', () => {
+    expect(robots).toContain(`Sitemap: ${SITE}sitemap.xml`)
+    expect(sitemap).toContain(`<loc>${SITE}</loc>`)
+  })
+
+  it('has a web app manifest with large icons', () => {
+    const parsed = JSON.parse(manifest) as { name: string; icons: { sizes: string }[] }
+    expect(parsed.name).toBe('Naseeb Odds')
+    expect(parsed.icons.map((icon) => icon.sizes)).toEqual(expect.arrayContaining(['192x192', '512x512']))
+  })
+})

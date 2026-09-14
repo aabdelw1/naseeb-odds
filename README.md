@@ -122,6 +122,19 @@ When running locally, or on the deployed site with `?debug` in the URL, the foot
 
 Spreading `changed` over `DEFAULT_FILTERS` reproduces the count.
 
+## SEO and sharing
+
+- **Tags:** `index.html` has the title, meta description, canonical URL, Open Graph and Twitter preview tags, a web app manifest, and JSON-LD structured data (`WebApplication` and `FAQPage`).
+- **Readable content:** a plain-HTML "What is Naseeb Odds?" section with an FAQ sits below the app, so search engines can read it without running JavaScript. [`src/test/seo.test.ts`](src/test/seo.test.ts) keeps the FAQ structured data in sync with it.
+- **Crawlers:** `public/robots.txt` and `public/sitemap.xml` point them at https://naseebodds.com/.
+- **Shareable searches:** the page address holds the search (e.g. `?sex=female&age=23-28&prays=1`), and the **Share this search** button sends that link, so every share opens the same search.
+- **Icons and preview card:** generated with `swift scripts/generate-icons.swift public`.
+
+To get indexed:
+1. Add the site to [Google Search Console](https://search.google.com/search-console), verifying with a DNS TXT record at the registrar.
+2. Submit `https://naseebodds.com/sitemap.xml`.
+3. Do the same in [Bing Webmaster Tools](https://www.bing.com/webmasters).
+
 ## Deploy
 
 The site deploys to GitHub Pages at https://naseebodds.com via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:

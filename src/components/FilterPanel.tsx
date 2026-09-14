@@ -295,10 +295,10 @@ function Field({ label, value, children }: FieldProps) {
   return (
     <div className="field">
       {value === undefined ? (
-        <h2 className="field-label">{label}</h2>
+        <div className="field-label">{label}</div>
       ) : (
         <div className="field-head">
-          <h2 className="field-label">{label}</h2>
+          <div className="field-label">{label}</div>
           <span className="field-value">{value}</span>
         </div>
       )}
