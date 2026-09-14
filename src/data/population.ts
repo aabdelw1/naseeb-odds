@@ -1,14 +1,22 @@
-// ROUGH PLACEHOLDER ESTIMATES — good enough to build the UI, not to quote.
+// ESTIMATES — good enough to build the UI, not to quote.
 //
-// Totals follow Pew Research Center's 2017 estimate: ~3.45M Muslims in the US,
-// ~2.15M of them adults. Everything else is our own approximation:
+// Researched:
+// - Totals: Pew Research Center (2017), ~3.45M Muslims in the US, ~2.15M adults.
+// - Ethnicity mix and adult sex ratio: ISPU American Muslim Poll (2025), the one
+//   major survey that counts Arabs separately instead of folding them into white.
+// - Heights: CDC NHANES (2015–2018) by race for US-born-heavy groups, blended with
+//   NCD-RisC / national survey averages for immigrant-heavy groups.
+//
+// Approximated (replace with better sources before sharing results widely):
 // - 5-year age bands interpolated from Pew's broad adult brackets
-// - a 50/50 sex split
 // - marital status by age, shaped like the general US population (ACS)
-// - earnings loosely modelled on general US patterns
-// Replace with better sources before sharing results widely.
+// - the share of divorced people with kids, and earnings curves
+// - every filter is treated as independent of the others (e.g. ethnicity doesn't
+//   change the age mix), except height, which depends on sex and ethnicity
 
 export type Sex = 'male' | 'female'
+
+export type Ethnicity = 'arab' | 'black' | 'desi' | 'white' | 'other'
 
 export interface MaritalShares {
   neverMarried: number
@@ -33,17 +41,72 @@ export interface AgeBand {
   medianIncome: number
 }
 
+export interface EthnicGroup {
+  /** Share of US Muslims; all groups sum to 1. */
+  share: number
+  /** Mean adult height in inches. */
+  meanHeight: Record<Sex, number>
+}
+
 export const AGE_MIN = 0
 /** The last band is really "75+"; the slider tops out here and shows "90+". */
 export const AGE_MAX = 90
+export const ADULT_AGE = 18
 
-export const SEX_SHARE: Record<Sex, number> = { male: 0.5, female: 0.5 }
+/** ISPU 2025: 56% of Muslim adults are men. Children are assumed to be 50/50. */
+export const ADULT_SEX_SHARE: Record<Sex, number> = { male: 0.56, female: 0.44 }
+export const CHILD_SEX_SHARE: Record<Sex, number> = { male: 0.5, female: 0.5 }
 
 /** Women's earner share and median earnings, relative to men's. */
 export const FEMALE_INCOME_FACTOR = { earners: 0.8, medianIncome: 0.8 }
 
 /** Spread of the log-normal earnings curve within a band. */
 export const INCOME_SIGMA = 0.75
+
+/** Height slider bounds in inches (4'8" to 6'8"); the ends mean "or shorter" / "or taller". */
+export const HEIGHT_MIN = 56
+export const HEIGHT_MAX = 80
+
+/**
+ * Standard deviation of adult height within one ethnic group, in inches. Derived from
+ * the 5th–95th percentile spread of each race group in NHANES 2015–2018 (tables 10, 12).
+ */
+export const HEIGHT_SD: Record<Sex, number> = { male: 2.8, female: 2.6 }
+
+// Ethnicity shares blend three estimates, because no single survey measures Arabs well:
+//
+// 1. ISPU 2025 self-ID: Black 28%, Asian 24%, white 20%, Arab 12%, Hispanic 9%,
+//    mixed/other ~7%. Arab is a floor: many Arabs tick "white", as the Census
+//    instructs, and two-thirds of ISPU's white Muslims are foreign-born.
+// 2. Pew 2017 origins: 58% of Muslim adults are immigrants, 25% of them from the
+//    Middle East–North Africa (Iran is counted separately), so ~14.5% are Arab-born;
+//    add second- and third-generation Arabs for ~19%. Black: 11% of immigrants and
+//    32% of US-born Muslims, ~20%.
+// 3. Top-down: 2.7M (Census 2020) to 3.7M (Arab American Institute) Arab Americans,
+//    24–35% of them Muslim, is 0.65–1.3M of ~3.45M Muslims: ~19–38% Arab.
+//
+// Arab and Black come out roughly tied (~23% each). "White" here means non-Arab
+// white: Persian, Turkish, Afghan, Balkan and convert Muslims. "Desi" follows Pew's
+// South Asian origins (Pakistan, India, Bangladesh). "Other" is mostly Hispanic,
+// Southeast Asian and mixed.
+//
+// Heights (inches). NHANES 2015–2018 means: non-Hispanic white 69.5 / 63.9,
+// non-Hispanic Black 69.3 / 64.0, non-Hispanic Asian 67.1 / 61.5, Hispanic 67.1 / 62.0
+// (men / women). Immigrant-heavy groups (~58% of Muslim adults are foreign-born, Pew)
+// blend 60% home-region average with 40% US average.
+export const ETHNIC_GROUPS: Record<Ethnicity, EthnicGroup> = {
+  // Egypt, Lebanon, Jordan, Iraq, Morocco average 172.1 / 159.4 cm, blended with US average.
+  arab: { share: 0.23, meanHeight: { male: 68.3, female: 63.1 } },
+  // NHANES non-Hispanic Black.
+  black: { share: 0.23, meanHeight: { male: 69.3, female: 64.0 } },
+  // India 165 / 152 cm, Pakistan 165.8 / 153.9 cm, blended with NHANES Asian.
+  desi: { share: 0.25, meanHeight: { male: 66.0, female: 60.7 } },
+  // Mostly foreign-born: Iran 170.3 / 157.2 cm, Afghanistan 168.2 / 155.3 cm, plus
+  // taller Balkan and Turkish Muslims; about one-third converts at NHANES white height.
+  white: { share: 0.17, meanHeight: { male: 68.2, female: 62.8 } },
+  // Mostly Hispanic: NHANES Hispanic.
+  other: { share: 0.12, meanHeight: { male: 67.1, female: 62.0 } },
+}
 
 function band(
   min: number,

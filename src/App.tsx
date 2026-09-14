@@ -48,7 +48,8 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Rough estimates: totals from Pew Research Center (2017); marital and income splits approximated. Just for fun.
+        Estimates from Pew Research Center (2017), ISPU American Muslim Poll (2025) and CDC NHANES; marital and
+        income splits approximated. Just for fun.
       </footer>
     </div>
   )
