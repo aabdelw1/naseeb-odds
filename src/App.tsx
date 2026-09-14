@@ -11,7 +11,8 @@ import { useTweenedNumber } from './lib/useTweenedNumber'
 export default function App() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
   const [estimate, setEstimate] = useState<EstimateLevel>('realistic')
-  const total = totalPopulation(estimate)
+  const bayArea = filters.region === 'bayArea'
+  const total = totalPopulation(estimate, filters.region)
   // The count animates every frame, so only recount when the inputs change.
   const count = useMemo(() => countMatching(filters, estimate), [filters, estimate])
   const layout = useMemo(() => layoutCircle(count, total), [count, total])
@@ -39,10 +40,11 @@ export default function App() {
             {displayedCount}
           </div>
           <div className="count-caption">
-            Muslims in the US · <strong>{formatPercent(count / total)}</strong> of the ummah here
+            Muslims in {bayArea ? 'the Bay Area' : 'the US'} · <strong>{formatPercent(count / total)}</strong> of the
+            ummah here
           </div>
 
-          <EstimateSwitch value={estimate} onChange={setEstimate} />
+          <EstimateSwitch value={estimate} onChange={setEstimate} bayArea={bayArea} />
 
           <div className="legend">
             <PersonIcon className="legend-icon" />

@@ -9,10 +9,11 @@ const LABELS: Record<EstimateLevel, string> = {
 interface Props {
   value: EstimateLevel
   onChange: (value: EstimateLevel) => void
+  bayArea: boolean
 }
 
 /** How hopeful the count is: moves the population total and survey rates within plausible ranges. */
-export function EstimateSwitch({ value, onChange }: Props) {
+export function EstimateSwitch({ value, onChange, bayArea }: Props) {
   return (
     <div className="estimate">
       <div className="segmented segmented--compact" role="radiogroup" aria-label="Estimate">
@@ -29,7 +30,9 @@ export function EstimateSwitch({ value, onChange }: Props) {
           </button>
         ))}
       </div>
-      <p className="estimate-description">{ESTIMATES[value].description}</p>
+      <p className="estimate-description">
+        {bayArea ? ESTIMATES[value].bayAreaDescription : ESTIMATES[value].description}
+      </p>
     </div>
   )
 }

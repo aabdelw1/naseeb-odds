@@ -9,10 +9,12 @@ import {
   RACE_BY_GENERATION,
   type Birthplace,
 } from '../data/background'
+import { BAY_AREA } from '../data/bayArea'
 import { EMPLOYED_SHARE } from '../data/earnings'
+import { ESTIMATE_LEVELS, ESTIMATES } from '../data/estimates'
 import { ADULT_POPULATION, ADULT_SEX_SHARE, ETHNIC_GROUPS, HEIGHT_SD, type Ethnicity } from '../data/population'
 import { CONVERTS, MOSQUE_WEEKLY, PRAYS_FIVE_DAILY, SECT_SHARES, type PracticeRates, type Sect } from '../data/religion'
-import { ALL_ETHNICITIES, ALL_NATIVITIES, type Filters } from '../lib/filters'
+import { ALL_ETHNICITIES, ALL_NATIVITIES, countMatching, DEFAULT_FILTERS, type Filters } from '../lib/filters'
 import { CELLS } from '../lib/model'
 import { normalCdf } from '../lib/stats'
 import { expectNear } from './assertions'
@@ -182,6 +184,51 @@ describe('earnings (Pew 2017, ISPU 2025)', () => {
       const modelRatio = share({ minIncome: 100_000 }, { ethnicities: [e] }) / overall
       const sourceRatio = ETHNIC_GROUPS[e].householdIncome100kPlus / average
       expect(Math.abs(modelRatio / sourceRatio - 1), `${e}: ${modelRatio.toFixed(2)} vs ${sourceRatio.toFixed(2)}`).toBeLessThan(0.1)
+    }
+  })
+})
+
+describe('Bay Area (Bay Area Muslim Study 2013, US Religion Census 2020)', () => {
+  const BAY: Partial<Filters> = { region: 'bayArea' }
+  const odds = (p: number) => p / (1 - p)
+
+  it('has the Bay Area population under each estimate level', () => {
+    for (const level of ESTIMATE_LEVELS) {
+      const c = countMatching({ ...DEFAULT_FILTERS, ...BAY }, level)
+      expect(Math.abs(c - ESTIMATES[level].bayAreaPopulation), level).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it("matches the study's ethnic, birthplace, marriage and sect mix", () => {
+    for (const e of ALL_ETHNICITIES) expectNear(share({ ethnicities: [e] }, BAY), BAY_AREA.ethnicity[e], 0.005, e)
+    expectNear(share({ nativity: ['immigrant'] }, BAY), BAY_AREA.birthplace.immigrant, 0.01, 'immigrants')
+    expectNear(share({ marital: ['married'] }, BAY), BAY_AREA.marital.married, 0.01, 'married')
+    expectNear(share({ marital: ['neverMarried'] }, BAY), BAY_AREA.marital.neverMarried, 0.01, 'never married')
+    for (const s of Object.keys(SECT_SHARES) as Sect[]) expectNear(share({ sects: [s] }, BAY), BAY_AREA.sects[s], 0.01, s)
+  })
+
+  it("matches the study's education, including the gaps between groups", () => {
+    const { bachelors, graduate, highSchoolOrLess } = BAY_AREA.education
+    expectNear(share({ minEducation: 'bachelors' }, BAY), bachelors + graduate, 0.01, "bachelor's+")
+    expectNear(share({ minEducation: 'someCollege' }, BAY), 1 - highSchoolOrLess, 0.01, 'some college+')
+    const modelOdds = (e: Ethnicity) => odds(share({ minEducation: 'someCollege' }, { ...BAY, ethnicities: [e] }))
+    for (const e of ['arab', 'white', 'black', 'other'] as Ethnicity[]) {
+      const modelRatio = modelOdds(e) / modelOdds('desi')
+      const sourceRatio = odds(BAY_AREA.someCollegeByEthnicity[e]) / odds(BAY_AREA.someCollegeByEthnicity.desi)
+      expect(Math.abs(modelRatio / sourceRatio - 1), `${e}: ${modelRatio.toFixed(2)} vs ${sourceRatio.toFixed(2)}`).toBeLessThan(0.1)
+    }
+  })
+
+  it("ranks high earners by ethnicity like the study's household incomes", () => {
+    const average = ALL_ETHNICITIES.reduce(
+      (s, e) => s + BAY_AREA.ethnicity[e] * BAY_AREA.householdIncome100kPlus[e],
+      0,
+    )
+    const overall = share({ minIncome: 100_000 }, BAY)
+    for (const e of ALL_ETHNICITIES) {
+      const modelRatio = share({ minIncome: 100_000 }, { ...BAY, ethnicities: [e] }) / overall
+      const sourceRatio = BAY_AREA.householdIncome100kPlus[e] / average
+      expect(Math.abs(modelRatio / sourceRatio - 1), `${e}: ${modelRatio.toFixed(2)} vs ${sourceRatio.toFixed(2)}`).toBeLessThan(0.15)
     }
   })
 })

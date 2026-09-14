@@ -11,6 +11,7 @@ import {
   type MaritalGroup,
   type Nativity,
 } from '../data/background'
+import { BAY_AREA } from '../data/bayArea'
 import {
   EARNINGS_AGE_PROFILE,
   EARNINGS_BY_EDUCATION,
@@ -20,6 +21,7 @@ import {
   PART_TIME_ADJUSTMENT,
   TEEN_EARNINGS,
 } from '../data/earnings'
+import { ESTIMATES } from '../data/estimates'
 import {
   ADULT_AGE,
   ADULT_SEX_SHARE,
@@ -49,6 +51,9 @@ import { logit, normalCdf, sigmoid } from './stats'
 // so the whole population reproduces every published figure at once. Because traits
 // live together in cells, filters combine realistically: picking $250k+ earners picks
 // mostly degree holders, and picking immigrants picks mostly married people.
+//
+// The Bay Area is a second set of the same cells, re-weighted to the Bay Area Muslim
+// Study and given Bay Area earnings.
 
 export interface Cell {
   band: AgeBand
@@ -73,6 +78,8 @@ export interface Cell {
   convert: number
   /** Probability of having any earnings. */
   earners: number
+  /** Median annual earnings from education, age and sex, before ethnicity and region. */
+  baseMedianIncome: number
   /** Median annual earnings among people with earnings. */
   medianIncome: number
   /** Log-normal spread of earnings among people with earnings. */
@@ -87,10 +94,13 @@ const SECTS = Object.keys(SECT_SHARES) as Sect[]
 const HIGH_SCHOOL_RANK = EDUCATION_LEVELS.indexOf('highSchool')
 const BACHELORS_RANK = EDUCATION_LEVELS.indexOf('bachelors')
 
-/** Earnings level ISPU's income-by-race figures are matched at. */
+/** Earnings level the income-by-race figures are matched at. */
 const HIGH_INCOME = 100_000
 
 export const CELLS: Cell[] = buildModel()
+
+/** Bay Area cells, in the same order as CELLS, summing to the realistic Bay Area population. */
+export const BAY_AREA_CELLS: Cell[] = buildBayArea(CELLS)
 
 /** Share of a cell's people earning at least `minIncome`. */
 export function incomeShare(cell: Cell, minIncome: number, medianIncome = cell.medianIncome): number {
@@ -111,6 +121,14 @@ function buildModel(): Cell[] {
     cell.convert = CONVERT_SHARE[cell.nativity][cell.ethnicity]
   })
   assignEarnings(cells, adults)
+  // US-born Muslims earn like US-born Americans of the same background (Pew 2013); the
+  // immigrant multipliers carry the rest of ISPU's income gaps by race.
+  fitEthnicityEarnings(
+    adults,
+    Object.fromEntries(ETHNICITIES.map((e) => [e, ETHNIC_GROUPS[e].householdIncome100kPlus])) as Record<Ethnicity, number>,
+    1,
+    (c) => (c.birthplace === 'usBorn' ? ETHNIC_GROUPS[c.ethnicity].usBornEarnings : null),
+  )
   return cells
 }
 
@@ -153,6 +171,7 @@ function seedCells(): Cell[] {
                   mosqueWeekly: 0,
                   convert: 0,
                   earners: 0,
+                  baseMedianIncome: 0,
                   medianIncome: 0,
                   incomeSigma: 1,
                 })
@@ -197,12 +216,37 @@ function maritalGroup(status: MaritalStatus): MaritalGroup {
   return status === 'divorcedNoKids' || status === 'divorcedWithKids' ? 'divorced' : status
 }
 
+function highSchoolGroup(cell: Cell): string {
+  return cell.educationRank <= HIGH_SCHOOL_RANK ? 'highSchoolOrLess' : 'moreThanHighSchool'
+}
+
+/** Joint ethnicity × high-school-or-less targets from per-group rates. */
+function ethnicityEducationTargets(shares: Record<Ethnicity, number>, highSchoolOrLess: Record<Ethnicity, number>) {
+  const targets: Record<string, number> = {}
+  for (const e of ETHNICITIES) {
+    targets[`${e}|highSchoolOrLess`] = shares[e] * highSchoolOrLess[e]
+    targets[`${e}|moreThanHighSchool`] = shares[e] * (1 - highSchoolOrLess[e])
+  }
+  return targets
+}
+
+/** Each band's share of these cells' total weight, keyed by the band's minimum age. */
+function bandTotals(cells: Cell[]): Record<string, number> {
+  const totals: Record<string, number> = {}
+  for (const c of cells) totals[c.band.min] = (totals[c.band.min] ?? 0) + c.weight
+  return totals
+}
+
 /**
  * Rakes adult cell sizes to age, sex, ethnicity, generation, sect, marriage and education
  * targets. Every joint target is built from the same totals so the margins agree.
  */
 function calibrateWeights(adults: Cell[]): void {
   const weights = Float64Array.from(adults, (c) => c.weight)
+  const ethnicityShares = Object.fromEntries(ETHNICITIES.map((e) => [e, ETHNIC_GROUPS[e].share])) as Record<
+    Ethnicity,
+    number
+  >
 
   const ethnicityNativity: Record<string, number> = {}
   const ethnicitySect: Record<string, number> = {}
@@ -234,14 +278,9 @@ function calibrateWeights(adults: Cell[]): void {
   // ratios) but shift them so they average to Pew's overall rate.
   const highSchoolRates = shiftToAverage(
     Object.fromEntries(ETHNICITIES.map((e) => [e, ETHNIC_GROUPS[e].highSchoolOrLess])) as Record<Ethnicity, number>,
+    ethnicityShares,
     highSchoolOrLess,
   )
-  const ethnicityEducation: Record<string, number> = {}
-  for (const ethnicity of ETHNICITIES) {
-    const share = ETHNIC_GROUPS[ethnicity].share
-    ethnicityEducation[`${ethnicity}|highSchoolOrLess`] = share * highSchoolRates[ethnicity]
-    ethnicityEducation[`${ethnicity}|moreThanHighSchool`] = share * (1 - highSchoolRates[ethnicity])
-  }
 
   // Pew reports the age mix of immigrants and US-born Muslims separately (US-born adults
   // are much younger). Turn it into age × birthplace targets that agree with the age
@@ -275,8 +314,8 @@ function calibrateWeights(adults: Cell[]): void {
     { group: (c) => `${c.birthplace}|${maritalGroup(c.marital)}`, targets: birthplaceMarital },
     { group: (c) => `${c.birthplace}|${c.education}`, targets: birthplaceEducation },
     {
-      group: (c) => `${c.ethnicity}|${c.educationRank <= HIGH_SCHOOL_RANK ? 'highSchoolOrLess' : 'moreThanHighSchool'}`,
-      targets: ethnicityEducation,
+      group: (c) => `${c.ethnicity}|${highSchoolGroup(c)}`,
+      targets: ethnicityEducationTargets(ethnicityShares, highSchoolRates),
     },
   ]
   rakeWeights(adults, weights, margins, 1000, 1e-8)
@@ -284,10 +323,14 @@ function calibrateWeights(adults: Cell[]): void {
 }
 
 /** Shifts every group's rate by the same log-odds so the share-weighted average hits `average`. */
-function shiftToAverage(rates: Record<Ethnicity, number>, average: number): Record<Ethnicity, number> {
+function shiftToAverage(
+  rates: Record<Ethnicity, number>,
+  shares: Record<Ethnicity, number>,
+  average: number,
+): Record<Ethnicity, number> {
   const shifted = (shift: number) =>
     Object.fromEntries(ETHNICITIES.map((e) => [e, sigmoid(logit(rates[e]) + shift)])) as Record<Ethnicity, number>
-  const mean = (r: Record<Ethnicity, number>) => ETHNICITIES.reduce((sum, e) => sum + ETHNIC_GROUPS[e].share * r[e], 0)
+  const mean = (r: Record<Ethnicity, number>) => ETHNICITIES.reduce((sum, e) => sum + shares[e] * r[e], 0)
   let lo = -10
   let hi = 10
   for (let i = 0; i < 60; i++) {
@@ -344,10 +387,8 @@ function earningsAgeFactor(band: AgeBand): number {
 }
 
 /**
- * Earnings depend on education (BLS), age and sex, and on ethnicity: US-born Muslims earn
- * like US-born Americans of the same background, and immigrant multipliers are fitted so
- * each group's share earning $100k+, relative to all adults, matches its standing in ISPU's
- * household income figures. The chance of having earnings follows age, sex and education.
+ * Earnings from education (BLS medians and spread), age and sex. The chance of having
+ * earnings follows age, sex and education, scaled to Pew's 60% of adults working.
  */
 function assignEarnings(cells: Cell[], adults: Cell[]): void {
   const baseEarners = (c: Cell) =>
@@ -358,52 +399,114 @@ function assignEarnings(cells: Cell[], adults: Cell[]): void {
   for (const cell of cells) {
     if (!cell.adult) {
       cell.earners = cell.band.earners
-      cell.medianIncome = TEEN_EARNINGS.median
+      cell.baseMedianIncome = cell.medianIncome = TEEN_EARNINGS.median
       cell.incomeSigma = TEEN_EARNINGS.sigma
       continue
     }
     const earnings = EARNINGS_BY_EDUCATION[cell.education!]
     cell.earners = Math.min(0.97, baseEarners(cell) * scale)
-    cell.medianIncome =
+    cell.baseMedianIncome = cell.medianIncome =
       earnings.median *
       PART_TIME_ADJUSTMENT.median *
       earningsAgeFactor(cell.band) *
       (cell.sex === 'female' ? FEMALE_EARNINGS.median : 1)
     cell.incomeSigma = earnings.sigma + PART_TIME_ADJUSTMENT.sigma
   }
+}
 
+/**
+ * Sets each adult cell's median earnings to its base median times an ethnicity factor.
+ * Factors are fitted so each group's share earning $100k+, relative to all these adults,
+ * matches its standing in `householdHighIncome` (shares of $100k+ households). Cells with a
+ * `fixed` factor keep it. Fitted factors are rescaled so the average factor is `level`.
+ */
+function fitEthnicityEarnings(
+  adults: Cell[],
+  householdHighIncome: Record<Ethnicity, number>,
+  level: number,
+  fixed: (cell: Cell) => number | null = () => null,
+): void {
+  const totalWeight = adults.reduce((sum, c) => sum + c.weight, 0)
+  const groupWeight: Record<string, number> = {}
+  for (const c of adults) groupWeight[c.ethnicity] = (groupWeight[c.ethnicity] ?? 0) + c.weight
   const averageHousehold = ETHNICITIES.reduce(
-    (sum, e) => sum + ETHNIC_GROUPS[e].share * ETHNIC_GROUPS[e].householdIncome100kPlus,
+    (sum, e) => sum + (groupWeight[e] / totalWeight) * householdHighIncome[e],
     0,
   )
-  const immigrantMultiplier = Object.fromEntries(ETHNICITIES.map((e) => [e, 1])) as Record<Ethnicity, number>
-  const factorFor = (c: Cell) =>
-    c.birthplace === 'usBorn' ? ETHNIC_GROUPS[c.ethnicity].usBornEarnings : immigrantMultiplier[c.ethnicity]
-  const usBornFactorWeight = adults.reduce((sum, c) => sum + (c.birthplace === 'usBorn' ? c.weight * factorFor(c) : 0), 0)
-  const baseMedian = adults.map((c) => c.medianIncome)
+  const fixedWeight = adults.reduce((sum, c) => sum + c.weight * (fixed(c) ?? 0), 0)
+
+  const multiplier = Object.fromEntries(ETHNICITIES.map((e) => [e, level])) as Record<Ethnicity, number>
+  const factorFor = (c: Cell) => fixed(c) ?? multiplier[c.ethnicity]
 
   for (let iteration = 0; iteration < 60; iteration++) {
     const high: Record<string, number> = {}
-    const total: Record<string, number> = {}
     let allHigh = 0
-    adults.forEach((c, i) => {
-      const h = c.weight * incomeShare(c, HIGH_INCOME, baseMedian[i] * factorFor(c))
+    for (const c of adults) {
+      const h = c.weight * incomeShare(c, HIGH_INCOME, c.baseMedianIncome * factorFor(c))
       high[c.ethnicity] = (high[c.ethnicity] ?? 0) + h
-      total[c.ethnicity] = (total[c.ethnicity] ?? 0) + c.weight
       allHigh += h
-    })
-    for (const e of ETHNICITIES) {
-      const modelRatio = high[e] / total[e] / (allHigh / adultWeight)
-      const targetRatio = ETHNIC_GROUPS[e].householdIncome100kPlus / averageHousehold
-      immigrantMultiplier[e] = Math.min(2.5, Math.max(0.4, immigrantMultiplier[e] * Math.sqrt(targetRatio / modelRatio)))
     }
-    // Keep the overall earnings level anchored to BLS: the average factor across adults stays 1.
-    const immigrantFactorWeight = adults.reduce(
-      (sum, c) => sum + (c.birthplace === 'immigrant' ? c.weight * immigrantMultiplier[c.ethnicity] : 0),
-      0,
-    )
-    const rescale = (adultWeight - usBornFactorWeight) / immigrantFactorWeight
-    for (const e of ETHNICITIES) immigrantMultiplier[e] *= rescale
+    for (const e of ETHNICITIES) {
+      const modelRatio = high[e] / groupWeight[e] / (allHigh / totalWeight)
+      const targetRatio = householdHighIncome[e] / averageHousehold
+      multiplier[e] = Math.min(2.5 * level, Math.max(0.4 * level, multiplier[e] * Math.sqrt(targetRatio / modelRatio)))
+    }
+    // Keep the overall earnings level anchored: the average factor across adults is `level`.
+    const fittedWeight = adults.reduce((sum, c) => sum + (fixed(c) === null ? c.weight * multiplier[c.ethnicity] : 0), 0)
+    const rescale = (level * totalWeight - fixedWeight) / fittedWeight
+    for (const e of ETHNICITIES) multiplier[e] *= rescale
   }
-  adults.forEach((c, i) => (c.medianIncome = baseMedian[i] * factorFor(c)))
+  for (const c of adults) c.medianIncome = c.baseMedianIncome * factorFor(c)
+}
+
+/**
+ * Copies the national cells and re-weights them to the Bay Area Muslim Study: its ethnic,
+ * birthplace, education, marriage and sect mix (keeping the national age and sex mix), with
+ * Bay Area earnings and income gaps by ethnicity.
+ */
+function buildBayArea(national: Cell[]): Cell[] {
+  const cells = national.map((c) => ({ ...c }))
+  const adults = cells.filter((c) => c.adult)
+  const children = cells.filter((c) => !c.adult)
+
+  const someCollege = shiftToAverage(BAY_AREA.someCollegeByEthnicity, BAY_AREA.ethnicity, 1 - BAY_AREA.education.highSchoolOrLess)
+  const highSchoolOrLess = Object.fromEntries(ETHNICITIES.map((e) => [e, 1 - someCollege[e]])) as Record<Ethnicity, number>
+  const sexTotals: Record<string, number> = {}
+  for (const c of adults) sexTotals[c.sex] = (sexTotals[c.sex] ?? 0) + c.weight
+
+  const adultWeights = Float64Array.from(adults, (c) => c.weight)
+  rakeWeights(
+    adults,
+    adultWeights,
+    [
+      { group: (c) => String(c.band.min), targets: bandTotals(adults) },
+      { group: (c) => c.sex, targets: sexTotals },
+      { group: (c) => c.ethnicity, targets: BAY_AREA.ethnicity },
+      { group: (c) => `${c.ethnicity}|${highSchoolGroup(c)}`, targets: ethnicityEducationTargets(BAY_AREA.ethnicity, highSchoolOrLess) },
+      { group: (c) => c.birthplace, targets: BAY_AREA.birthplace },
+      {
+        group: (c) => (c.educationRank <= HIGH_SCHOOL_RANK ? 'highSchoolOrLess' : c.education!),
+        targets: BAY_AREA.education,
+      },
+      { group: (c) => maritalGroup(c.marital), targets: BAY_AREA.marital },
+      { group: (c) => c.sect, targets: BAY_AREA.sects },
+    ],
+    1000,
+    1e-8,
+  )
+  adults.forEach((c, i) => (c.weight = adultWeights[i]))
+
+  // Children follow the Bay Area's ethnic mix.
+  const childWeights = Float64Array.from(children, (c) => c.weight)
+  rakeWeights(children, childWeights, [
+    { group: (c) => String(c.band.min), targets: bandTotals(children) },
+    { group: (c) => c.ethnicity, targets: BAY_AREA.ethnicity },
+  ])
+  children.forEach((c, i) => (c.weight = childWeights[i]))
+
+  const scale = ESTIMATES.realistic.bayAreaPopulation / cells.reduce((sum, c) => sum + c.weight, 0)
+  for (const c of cells) c.weight *= scale
+
+  fitEthnicityEarnings(adults, BAY_AREA.householdIncome100kPlus, BAY_AREA.earningsFactor)
+  return cells
 }

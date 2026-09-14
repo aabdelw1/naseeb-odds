@@ -225,6 +225,34 @@ describe('height depends on sex, ethnicity and birthplace', () => {
   })
 })
 
+describe('the Bay Area', () => {
+  const BAY: Partial<Filters> = { region: 'bayArea' }
+
+  it('earns more than Muslims nationally', () => {
+    expect(share({ minIncome: 100_000 }, BAY)).toBeGreaterThan(share({ minIncome: 100_000 }) * 1.5)
+  })
+
+  it('earns more than the same ethnic group nationally, except White Muslims, who are mostly Afghan there', () => {
+    for (const e of ['desi', 'arab', 'black', 'other'] as const) {
+      const bayArea = share({ minIncome: 100_000 }, { ...BAY, ethnicities: [e] })
+      const national = share({ minIncome: 100_000 }, { ethnicities: [e] })
+      expect(bayArea, `${e}: ${pct(bayArea)} vs ${pct(national)}`).toBeGreaterThan(national)
+    }
+  })
+
+  it("has about twice the national share with bachelor's degrees", () => {
+    const ratio = share({ minEducation: 'bachelors' }, BAY) / share({ minEducation: 'bachelors' })
+    expect(ratio).toBeGreaterThan(1.6)
+    expect(ratio).toBeLessThan(2.4)
+  })
+
+  it('ranks $100k+ earners with Desi Muslims first and Black Muslims last', () => {
+    const rate = (e: (typeof ALL_ETHNICITIES)[number]) => share({ minIncome: 100_000 }, { ...BAY, ethnicities: [e] })
+    for (const e of ['arab', 'white', 'black', 'other'] as const) expect(rate('desi')).toBeGreaterThan(rate(e))
+    for (const e of ['desi', 'arab', 'other'] as const) expect(rate(e)).toBeGreaterThan(rate('black'))
+  })
+})
+
 describe('realistic searches', () => {
   const searches: [string, [string, Partial<Filters>][]][] = [
     [

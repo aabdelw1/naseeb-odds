@@ -59,13 +59,26 @@ The Conservative / Realistic / Generous switch under the count sets how hopeful 
 | | Conservative | Realistic (default) | Generous |
 | --- | --- | --- | --- |
 | US Muslims | 3.45M (Pew 2017) | 4.5M (US Religion Census 2020) | 5.5M (a 2026 estimate) |
+| Bay Area Muslims | 139k (US Religion Census 2020, nine counties) | 195k (in between) | 250k (Bay Area Muslim Study, 2013) |
 | Prayer and mosque rates | ~6 points lower | as reported | ~6 points higher |
 | Earnings | 10% lower | as reported | 10% higher |
 
 The model is calibrated and tested at Realistic.
 
+## Bay Area
+
+Choosing **Bay Area** switches to a second set of population cells. They are re-weighted to [The Bay Area Muslim Study](https://ispu.org/research-areas/the-bay-area-muslim-study/) (ISPU / One Nation Bay Area, 2013, 1,100+ respondents), keeping the national age and sex mix:
+- **Ethnicity:** South Asian 30%, Arab 23%, Afghan/White/Iranian 25%, African American 9%, other 13%.
+- **Background:** 64% immigrants; married 59%, never married 33%; Sunni 75%, just Muslim 14%.
+- **Education:** 60% have a bachelor's or higher (vs 31% of Muslims nationally), with the study's gaps between groups.
+- **Earnings:** 1.3× the national level for the same education, age and sex. [BLS](https://www.bls.gov/regions/west/news-release/occupationalemploymentandwages_sanjose.htm) mean wages run 44–71% above the national average, part of which the Bay Area's education mix already explains. Income gaps by ethnicity follow the study's $100k+ households (South Asian 49% down to African American and Afghan 10%).
+
+How many Bay Area Muslims there are is uncertain. [US Religion Census 2020](https://www.thearda.com/us-religion/census/congregational-membership?y=2020&t=0&c=06001) county counts add up to about 139k (Alameda 57k, Santa Clara 41k, San Mateo 11k, Contra Costa 11k, San Francisco 9k, Marin 7k, others 2k), while the Bay Area Muslim Study estimated 250k. The estimate switch covers that range.
+
+The Bay Area is not modeled separately for heights, prayer or conversion; those follow the national cells. White Muslims there are mostly Afghan, so they earn less than White (mostly Iranian) Muslims nationally.
+
 Filters, in three tabs:
-- **Basics:** gender, age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
+- **Basics:** gender, where (all of the US / Bay Area), age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
 - **Life:** marital status (never married / divorced, no kids / divorced with kids / widowed / married), height range, minimum education, and minimum income.
 - **Deen:** prays all 5 daily, goes to mosque weekly, sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
 
@@ -96,6 +109,16 @@ npx vite-node scripts/funnel.ts
 ```
 
 Breaks one search down step by step. For each filter it shows the share of people it keeps and what the final count would be without it, at every estimate level. Edit the steps at the top of the script to try your own search.
+
+## Deploy
+
+The site deploys to GitHub Pages at https://aabdelw1.github.io/ummah-odds/ via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:
+1. installs dependencies
+2. runs the tests
+3. builds with the `/ummah-odds/` base path (set in `vite.config.ts`)
+4. publishes `dist`
+
+One-time setup: in the repo, go to **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions**.
 
 ## Stack
 

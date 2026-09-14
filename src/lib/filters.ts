@@ -14,12 +14,14 @@ import {
   type Sex,
 } from '../data/population'
 import { PRAYER_MOSQUE_CORRELATION, type Sect } from '../data/religion'
-import { CELLS, incomeShare } from './model'
+import { BAY_AREA_CELLS, CELLS, incomeShare } from './model'
 import { logit, normalCdf, sigmoid } from './stats'
 
 export type { MaritalStatus }
 
 export type SexFilter = 'any' | Sex
+
+export type Region = 'us' | 'bayArea'
 
 export type MinEducation = 'any' | Exclude<EducationLevel, 'lessThanHighSchool'>
 
@@ -45,6 +47,7 @@ export const INCOME_STEPS = [0, 25_000, 50_000, 75_000, 100_000, 150_000, 200_00
 export const EDUCATION_STEPS: MinEducation[] = ['any', 'highSchool', 'someCollege', 'bachelors', 'graduate']
 
 export interface Filters {
+  region: Region
   sex: SexFilter
   /** Inclusive. */
   ageMin: number
@@ -71,6 +74,7 @@ export interface Filters {
 }
 
 export const DEFAULT_FILTERS: Filters = {
+  region: 'us',
   sex: 'any',
   ageMin: AGE_MIN,
   ageMax: AGE_MAX,
@@ -94,6 +98,7 @@ export function countActive(filters: Filters): Record<FilterTab, number> {
   const active = (checks: boolean[]) => checks.filter(Boolean).length
   return {
     basics: active([
+      filters.region !== 'us',
       filters.sex !== 'any',
       filters.ageMin !== AGE_MIN || filters.ageMax !== AGE_MAX,
       filters.ethnicities.length !== ALL_ETHNICITIES.length,
@@ -114,14 +119,20 @@ export function countActive(filters: Filters): Record<FilterTab, number> {
   }
 }
 
-/** Muslims of all ages under an estimate level. */
-export function totalPopulation(estimate: EstimateLevel = 'realistic'): number {
+/** Muslims of all ages in a region under an estimate level. */
+export function totalPopulation(estimate: EstimateLevel = 'realistic', region: Region = 'us'): number {
+  if (region === 'bayArea') return ESTIMATES[estimate].bayAreaPopulation
   return Math.round((TOTAL_POPULATION * ESTIMATES[estimate].population) / US_MUSLIM_POPULATION)
 }
 
 export function countMatching(filters: Filters, estimate: EstimateLevel = 'realistic'): number {
-  const { population, practiceShift, earningsFactor } = ESTIMATES[estimate]
-  const scale = population / US_MUSLIM_POPULATION
+  const { population, bayAreaPopulation, practiceShift, earningsFactor } = ESTIMATES[estimate]
+  const bayArea = filters.region === 'bayArea'
+  const cells = bayArea ? BAY_AREA_CELLS : CELLS
+  // Both cell sets are built at the realistic level; other levels scale their totals.
+  const scale = bayArea
+    ? bayAreaPopulation / ESTIMATES.realistic.bayAreaPopulation
+    : population / US_MUSLIM_POPULATION
   const practice = (p: number) => (practiceShift === 0 ? p : sigmoid(logit(p) + practiceShift))
   const lo = filters.ageMin
   const hi = filters.ageMax + 1
@@ -135,7 +146,7 @@ export function countMatching(filters: Filters, estimate: EstimateLevel = 'reali
   const adultsOnly = heights !== null || filters.praysFiveDaily || filters.mosqueWeekly || minEducationRank >= 0
 
   let count = 0
-  for (const cell of CELLS) {
+  for (const cell of cells) {
     const { band } = cell
     // Assume people are spread evenly across a band's years.
     const overlap = Math.min(hi, band.max) - Math.max(lo, band.min)

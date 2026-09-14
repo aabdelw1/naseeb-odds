@@ -12,6 +12,7 @@ import {
   type Filters,
   type MaritalStatus,
   type MinEducation,
+  type Region,
   type SexFilter,
 } from '../lib/filters'
 import { formatHeight, formatHeightRange, formatIncome } from '../lib/format'
@@ -25,6 +26,11 @@ const TABS: Option<FilterTab>[] = [
   { value: 'basics', label: 'Basics' },
   { value: 'life', label: 'Life' },
   { value: 'deen', label: 'Deen' },
+]
+
+const REGION_OPTIONS: Option<Region>[] = [
+  { value: 'us', label: 'All of the US' },
+  { value: 'bayArea', label: 'Bay Area' },
 ]
 
 const SEX_OPTIONS: Option<SexFilter>[] = [
@@ -128,6 +134,15 @@ export function FilterPanel({ filters, onChange }: Props) {
             options={SEX_OPTIONS}
             value={filters.sex}
             onChange={(sex) => update({ sex })}
+          />
+        </Field>
+
+        <Field label="Where">
+          <Segmented
+            label="Where"
+            options={REGION_OPTIONS}
+            value={filters.region}
+            onChange={(region) => update({ region })}
           />
         </Field>
 

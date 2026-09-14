@@ -24,6 +24,7 @@ type Patch = Partial<Filters>
 
 /** Representative values for every filter; the first value of each is its default. */
 const DIMENSIONS: Record<string, Patch[]> = {
+  region: [{ region: 'us' }, { region: 'bayArea' }],
   sex: [{ sex: 'any' }, { sex: 'male' }, { sex: 'female' }],
   age: [
     { ageMin: 0, ageMax: 90 },
@@ -106,14 +107,19 @@ describe('baseline', () => {
     expect(Math.abs(countMatching(build({ ageMin: 18 })) - ADULT_POPULATION)).toBeLessThanOrEqual(2)
   })
 
-  it('counts everyone under every estimate level', () => {
+  it('counts everyone under every estimate level, nationally and in the Bay Area', () => {
     for (const level of ESTIMATE_LEVELS) {
       expect(Math.abs(countMatching(DEFAULT_FILTERS, level) - totalPopulation(level)), level).toBeLessThanOrEqual(2)
+      expect(
+        Math.abs(countMatching(build({ region: 'bayArea' }), level) - totalPopulation(level, 'bayArea')),
+        `Bay Area ${level}`,
+      ).toBeLessThanOrEqual(2)
     }
   })
 
   it('counts each changed filter on its tab', () => {
     const tabOf: Record<string, FilterTab> = {
+      region: 'basics',
       sex: 'basics',
       age: 'basics',
       ethnicity: 'basics',
@@ -223,6 +229,20 @@ describe('random combinations of every filter', () => {
       const short = adultCombo({ heightMin: HEIGHT_MIN, heightMax: 67 })
       const any = adultCombo({ heightMin: HEIGHT_MIN, heightMax: HEIGHT_MAX })
       if (Math.abs(tall + short - any) > 2) failures.push(`height in ${describeCombo(combo)}: ${tall}+${short} vs ${any}`)
+    }
+    expect(failures).toEqual([])
+  })
+
+  it('never find more people in the Bay Area than in the whole US', () => {
+    const failures: string[] = []
+    const regionIndex = NAMES.indexOf('region')
+    for (const combo of COMBOS) {
+      const withRegion = (region: Patch) => build(...combo.map((p, k) => (k === regionIndex ? region : p)))
+      for (const level of ESTIMATE_LEVELS) {
+        const bayArea = countMatching(withRegion({ region: 'bayArea' }), level)
+        const us = countMatching(withRegion({ region: 'us' }), level)
+        if (bayArea > us + 1) failures.push(`${level} ${describeCombo(combo)}: Bay Area ${bayArea} > US ${us}`)
+      }
     }
     expect(failures).toEqual([])
   })
