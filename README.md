@@ -13,7 +13,9 @@ npm run dev
 
 ## Data
 
-The numbers in `src/data/population.ts` are **estimates**, some researched and some approximated.
+The numbers are **estimates**, some researched and some approximated.
+
+**How the numbers combine.** [`src/lib/model.ts`](src/lib/model.ts) builds a synthetic population of US Muslims out of ~37,000 cells, one per combination of age band, sex, ethnicity, generation, education, marital status and sect. Each cell also carries its odds of praying all five, going to mosque weekly and being a convert, plus an earnings curve. The cell sizes and odds are then calibrated ("raked") until the whole population reproduces every published figure below at once. The filters add up the matching cells, so traits that go together in real life go together in the app. For example, $250k+ earners are mostly degree holders, immigrants are more often married, and converts are mostly US-born.
 
 Researched:
 - **Totals:** [Pew Research Center, 2017](https://www.pewresearch.org/religion/2017/07/26/demographic-portrait-of-muslim-americans/): ~3.45M Muslims in the US, ~2.15M adults.
@@ -30,12 +32,49 @@ Researched:
   - Sect: Sunni 55%, Shia 16%, just Muslim 14%.
   - Education by birthplace: 38% of immigrants and 21% of US-born have a college degree or more.
   - Generation: immigrant 58%, 2nd gen 18%, 3rd gen+ 24%. Converts: 23%.
+  - By birthplace: immigrants are older and 70% married, while US-born adults are 45% under 30 and 29% married.
+  - Prayer and mosque rates by sex, age, degree, birthplace, marriage, sect and origin.
+- **Earnings:**
+  - Earnings by education: [BLS usual weekly earnings by education](https://www.bls.gov/charts/usual-weekly-earnings/usual-weekly-earnings-by-quartiles-and-selected-deciles-by-education.htm) (medians and spread). The income filter is personal earnings.
+  - Employment: 60% of Muslim adults work (Pew).
+  - Relative standing by ethnicity: [ISPU 2025](https://ispu.org/poll/american-muslim-poll-2025-full-report-2/) household incomes of $100k+ (White 44%, Asian 34%, Arab 19%, Black 7%).
 
-Approximated: the 5-year age bands, the generation mix within each ethnicity, converts by generation, how many young adults have finished degrees, marital status by age (shaped like the general US population), the share of divorced people with kids, and earnings (a log-normal curve per age band). Most filters are treated as independent of each other. The exceptions: height depends on sex and ethnicity; generation depends on ethnicity; prayer and mosque attendance depend on sex and sect (prayer also on age); education and converts depend on generation. Improve these before quoting any result.
+Approximated:
+- the starting shape of marital status by age (general US pattern), later calibrated to Pew
+- the share of divorced people with kids
+- generation and sect mix within each ethnicity
+- converts by generation and ethnicity
+- how many young adults have finished degrees
+- earnings by age and for women
+- how strongly praying all five and weekly mosque attendance overlap
+
+Height depends only on sex and ethnicity. Improve these before quoting any result.
 
 Filters: gender, age range, ethnicity (Arab / Black / Desi / White / Other), height range, marital status (never married / divorced, no kids / divorced with kids / widowed / married), and minimum income.
 
 Advanced filters: prays all 5 daily, goes to mosque weekly, sect (Sunni / Shia / Just Muslim / Other), minimum education, born in the US (immigrant / 2nd gen / 3rd gen+), and convert (born Muslim / convert).
+
+## Tests
+
+```bash
+npm test
+```
+
+- [`invariants.test.ts`](src/test/invariants.test.ts) checks the basic rules:
+  - Counts are whole, never negative, and never above the total.
+  - Adding a filter never raises the count.
+  - A filter's options add up to the whole.
+  - Raising minimum income or education only shrinks the pool.
+
+  It covers every pair of filter values and 300 random combinations of all filters.
+- [`calibration.test.ts`](src/test/calibration.test.ts) checks that the model reproduces each published figure it is built from.
+- [`plausibility.test.ts`](src/test/plausibility.test.ts) checks relationships that must hold for combinations to make sense. For example, each step up in education raises every income tier, and immigrants are more often married at every age.
+
+```bash
+npm run report
+```
+
+Prints cross-tabs (earnings by degree, marriage by age and birthplace, converts by ethnicity and generation, and more) and shows how much linked traits differ from simply multiplying their shares.
 
 ## Stack
 

@@ -1,42 +1,22 @@
+import { EDUCATION_LEVELS, type EducationLevel, type Nativity } from '../data/background'
 import {
-  CHILD_NATIVITY,
-  CONVERT_SHARE,
-  DEGREE_AGE_FACTOR,
-  EDUCATION_BY_BIRTHPLACE,
-  type EducationLevel,
-  type Nativity,
-} from '../data/background'
-import {
-  ADULT_AGE,
-  ADULT_SEX_SHARE,
-  AGE_BANDS,
   AGE_MAX,
   AGE_MIN,
-  CHILD_SEX_SHARE,
   ETHNIC_GROUPS,
-  FEMALE_INCOME_FACTOR,
   HEIGHT_MAX,
   HEIGHT_MIN,
   HEIGHT_SD,
-  INCOME_SIGMA,
-  type AgeBand,
-  type EthnicGroup,
   type Ethnicity,
+  type MaritalStatus,
   type Sex,
 } from '../data/population'
-import {
-  MOSQUE_WEEKLY_BY_SEX,
-  MOSQUE_WEEKLY_OVERALL,
-  PRAYS_FIVE_DAILY_BY_AGE,
-  PRAYS_FIVE_DAILY_BY_SEX,
-  PRAYS_FIVE_DAILY_OVERALL,
-  SECTS,
-  type Sect,
-} from '../data/religion'
+import { PRAYER_MOSQUE_CORRELATION, type Sect } from '../data/religion'
+import { CELLS, incomeShare } from './model'
+import { normalCdf } from './stats'
+
+export type { MaritalStatus }
 
 export type SexFilter = 'any' | Sex
-
-export type MaritalStatus = 'neverMarried' | 'divorcedNoKids' | 'divorcedWithKids' | 'widowed' | 'married'
 
 export type MinEducation = 'any' | Exclude<EducationLevel, 'lessThanHighSchool'>
 
@@ -75,7 +55,7 @@ export interface Filters {
   heightMax: number
   /** Statuses to include; empty matches nobody. */
   marital: MaritalStatus[]
-  /** Minimum annual earnings; 0 means any. */
+  /** Minimum annual personal earnings; 0 means any. */
   minIncome: number
 
   // Advanced filters.
@@ -120,133 +100,64 @@ export function countActiveAdvanced(filters: Filters): number {
 export function countMatching(filters: Filters): number {
   const lo = filters.ageMin
   const hi = filters.ageMax + 1
-  const sexes: Sex[] = filters.sex === 'any' ? ['male', 'female'] : [filters.sex]
+  const ethnicities = new Set(filters.ethnicities)
+  const marital = new Set(filters.marital)
+  const sects = new Set(filters.sects)
+  const nativity = new Set(filters.nativity)
+  const minEducationRank = filters.minEducation === 'any' ? -1 : EDUCATION_LEVELS.indexOf(filters.minEducation)
+  const heights = heightShares(filters)
+  // Height, prayer, mosque and education are only modelled for adults.
+  const adultsOnly = heights !== null || filters.praysFiveDaily || filters.mosqueWeekly || minEducationRank >= 0
+
   let count = 0
-  for (const band of AGE_BANDS) {
+  for (const cell of CELLS) {
+    const { band } = cell
     // Assume people are spread evenly across a band's years.
-    const overlap = Math.max(0, Math.min(hi, band.max) - Math.max(lo, band.min))
-    if (overlap === 0) continue
-    const inAgeRange = (band.count * overlap) / (band.max - band.min)
-    const marital = maritalShare(band, filters.marital)
-    const sexShares = band.min >= ADULT_AGE ? ADULT_SEX_SHARE : CHILD_SEX_SHARE
-    for (const sex of sexes) {
-      const income = incomeShare(band, sex, filters.minIncome)
-      const religion = religionShare(band, sex, filters)
-      for (const ethnicity of filters.ethnicities) {
-        const group = ETHNIC_GROUPS[ethnicity]
-        const height = heightShare(band, sex, group.meanHeight[sex], filters)
-        const background = backgroundShare(band, group, filters)
-        count += inAgeRange * sexShares[sex] * marital * income * group.share * height * religion * background
-      }
+    const overlap = Math.min(hi, band.max) - Math.max(lo, band.min)
+    if (overlap <= 0) continue
+    if (adultsOnly && !cell.adult) continue
+    if (filters.sex !== 'any' && cell.sex !== filters.sex) continue
+    if (!ethnicities.has(cell.ethnicity) || !marital.has(cell.marital)) continue
+    if (!sects.has(cell.sect) || !nativity.has(cell.nativity)) continue
+    if (cell.educationRank < minEducationRank) continue
+
+    let share = overlap / (band.max - band.min)
+    if (heights) share *= heights[cell.sex][cell.ethnicity]
+    if (filters.minIncome > 0) share *= incomeShare(cell, filters.minIncome)
+    if (filters.praysFiveDaily && filters.mosqueWeekly) {
+      share *= bothPractices(cell.praysFiveDaily, cell.mosqueWeekly)
+    } else if (filters.praysFiveDaily) {
+      share *= cell.praysFiveDaily
+    } else if (filters.mosqueWeekly) {
+      share *= cell.mosqueWeekly
     }
+    if (filters.convert !== 'any') share *= filters.convert === 'convert' ? cell.convert : 1 - cell.convert
+    count += cell.weight * share
   }
   return Math.round(count)
 }
 
-function maritalShare(band: AgeBand, statuses: MaritalStatus[]): number {
-  const { neverMarried, married, divorced, widowed } = band.marital
-  const shares: Record<MaritalStatus, number> = {
-    neverMarried,
-    married,
-    widowed,
-    divorcedNoKids: divorced * (1 - band.divorcedWithKids),
-    divorcedWithKids: divorced * band.divorcedWithKids,
-  }
-  return statuses.reduce((sum, status) => sum + shares[status], 0)
+/** Probability of both practices, part way between independent and maximally overlapping. */
+function bothPractices(prays: number, mosque: number): number {
+  const independent = prays * mosque
+  return independent + PRAYER_MOSQUE_CORRELATION * (Math.min(prays, mosque) - independent)
 }
 
-/** Share of the band earning at least `minIncome`, assuming log-normal earnings among earners. */
-function incomeShare(band: AgeBand, sex: Sex, minIncome: number): number {
-  if (minIncome <= 0) return 1
-  const factor = sex === 'female' ? FEMALE_INCOME_FACTOR : { earners: 1, medianIncome: 1 }
-  const earners = band.earners * factor.earners
-  if (earners === 0) return 0
-  const median = band.medianIncome * factor.medianIncome
-  const z = Math.log(minIncome / median) / INCOME_SIGMA
-  return earners * (1 - normalCdf(z))
-}
-
-/** Share within the height range, assuming normally distributed adult heights. */
-function heightShare(band: AgeBand, sex: Sex, meanHeight: number, filters: Filters): number {
+/** Share of each sex and ethnicity within the height range, or null when height isn't limited. */
+function heightShares(filters: Filters): Record<Sex, Record<Ethnicity, number>> | null {
   const noLower = filters.heightMin <= HEIGHT_MIN
   const noUpper = filters.heightMax >= HEIGHT_MAX
-  if (noLower && noUpper) return 1
-  // Children's heights aren't modelled, so any height limit leaves them out.
-  if (band.min < ADULT_AGE) return 0
+  if (noLower && noUpper) return null
   // Heights are whole inches, so 5'10" covers everyone from 5'9.5" to 5'10.5".
   const lower = noLower ? -Infinity : filters.heightMin - 0.5
   const upper = noUpper ? Infinity : filters.heightMax + 0.5
-  const sd = HEIGHT_SD[sex]
-  return normalCdf((upper - meanHeight) / sd) - normalCdf((lower - meanHeight) / sd)
-}
-
-/** Share in the chosen sects who also meet the prayer and mosque filters. */
-function religionShare(band: AgeBand, sex: Sex, filters: Filters): number {
-  // Practice is only surveyed for adults, so those filters leave children out.
-  if (band.min < ADULT_AGE && (filters.praysFiveDaily || filters.mosqueWeekly)) return 0
-  let share = 0
-  for (const sect of filters.sects) {
-    const data = SECTS[sect]
-    let p = data.share
-    // Pew reports each rate by sex, sect and age separately, so combine them as
-    // independent multipliers around the overall rate.
-    if (filters.praysFiveDaily) {
-      const age = PRAYS_FIVE_DAILY_BY_AGE.find((a) => band.min >= a.minAge)!.rate
-      const rate =
-        PRAYS_FIVE_DAILY_BY_SEX[sex] *
-        (age / PRAYS_FIVE_DAILY_OVERALL) *
-        (data.praysFiveDaily / PRAYS_FIVE_DAILY_OVERALL)
-      p *= Math.min(rate, 0.95)
-    }
-    if (filters.mosqueWeekly) {
-      p *= Math.min(MOSQUE_WEEKLY_BY_SEX[sex] * (data.mosqueWeekly / MOSQUE_WEEKLY_OVERALL), 0.95)
-    }
-    share += p
-  }
-  return share
-}
-
-/** Share in the chosen generations who also meet the education and convert filters. */
-function backgroundShare(band: AgeBand, group: EthnicGroup, filters: Filters): number {
-  const adult = band.min >= ADULT_AGE
-  // Education is only surveyed for adults, so an education filter leaves children out.
-  if (!adult && filters.minEducation !== 'any') return 0
-  const mix = adult ? group.nativity : CHILD_NATIVITY
-  let share = 0
-  for (const nativity of filters.nativity) {
-    let p = mix[nativity]
-    if (filters.minEducation !== 'any') p *= educationShare(band, nativity, filters.minEducation)
-    if (filters.convert !== 'any') {
-      const convert = adult ? CONVERT_SHARE[nativity] : 0
-      p *= filters.convert === 'convert' ? convert : 1 - convert
-    }
-    share += p
-  }
-  return share
-}
-
-function educationShare(band: AgeBand, nativity: Nativity, minEducation: Exclude<MinEducation, 'any'>): number {
-  const s = EDUCATION_BY_BIRTHPLACE[nativity === 'immigrant' ? 'immigrant' : 'usBorn']
-  const factor = DEGREE_AGE_FACTOR.find((f) => band.min < f.belowAge) ?? { bachelors: 1, graduate: 1 }
-  switch (minEducation) {
-    case 'highSchool':
-      return 1 - s.lessThanHighSchool
-    case 'someCollege':
-      return s.someCollege + s.bachelors + s.graduate
-    case 'bachelors':
-      return (s.bachelors + s.graduate) * factor.bachelors
-    case 'graduate':
-      return s.graduate * factor.graduate
-  }
-}
-
-/** Abramowitz–Stegun 7.1.26 erf approximation, accurate to ~1e-7. */
-function normalCdf(z: number): number {
-  if (z === Infinity) return 1
-  if (z === -Infinity) return 0
-  const x = Math.abs(z) / Math.SQRT2
-  const t = 1 / (1 + 0.3275911 * x)
-  const poly = ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t
-  const erf = 1 - poly * Math.exp(-x * x)
-  return z >= 0 ? (1 + erf) / 2 : (1 - erf) / 2
+  const shareFor = (sex: Sex) =>
+    Object.fromEntries(
+      (Object.keys(ETHNIC_GROUPS) as Ethnicity[]).map((ethnicity) => {
+        const mean = ETHNIC_GROUPS[ethnicity].meanHeight[sex]
+        const sd = HEIGHT_SD[sex]
+        return [ethnicity, normalCdf((upper - mean) / sd) - normalCdf((lower - mean) / sd)]
+      }),
+    ) as Record<Ethnicity, number>
+  return { male: shareFor('male'), female: shareFor('female') }
 }
