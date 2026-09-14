@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { EstimateSwitch } from './components/EstimateSwitch'
 import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
 import type { EstimateLevel } from './data/estimates'
@@ -31,7 +32,7 @@ export default function App() {
       </header>
 
       <main className="layout">
-        <FilterPanel filters={filters} onChange={setFilters} estimate={estimate} onEstimateChange={setEstimate} />
+        <FilterPanel filters={filters} onChange={setFilters} />
 
         <section className="results" aria-live="polite">
           <div className="count" ref={countRef}>
@@ -40,6 +41,8 @@ export default function App() {
           <div className="count-caption">
             Muslims in the US · <strong>{formatPercent(count / total)}</strong> of the ummah here
           </div>
+
+          <EstimateSwitch value={estimate} onChange={setEstimate} />
 
           <div className="legend">
             <PersonIcon className="legend-icon" />

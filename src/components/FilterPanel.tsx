@@ -1,15 +1,14 @@
 import { useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import type { Nativity } from '../data/background'
-import { ESTIMATE_LEVELS, ESTIMATES, type EstimateLevel } from '../data/estimates'
 import { AGE_MAX, AGE_MIN, HEIGHT_MAX, HEIGHT_MIN, type Ethnicity } from '../data/population'
 import type { Sect } from '../data/religion'
 import {
-  countActiveAdvanced,
-  countActiveBasic,
+  countActive,
   DEFAULT_FILTERS,
   EDUCATION_STEPS,
   INCOME_STEPS,
   type ConvertFilter,
+  type FilterTab,
   type Filters,
   type MaritalStatus,
   type MinEducation,
@@ -21,6 +20,12 @@ interface Option<T> {
   value: T
   label: string
 }
+
+const TABS: Option<FilterTab>[] = [
+  { value: 'basics', label: 'Basics' },
+  { value: 'life', label: 'Life' },
+  { value: 'deen', label: 'Deen' },
+]
 
 const SEX_OPTIONS: Option<SexFilter>[] = [
   { value: 'any', label: 'Anyone' },
@@ -71,14 +76,6 @@ const EDUCATION_LABELS: Record<MinEducation, string> = {
   graduate: 'Grad degree',
 }
 
-const ESTIMATE_LABELS: Record<EstimateLevel, string> = {
-  conservative: 'Conservative',
-  realistic: 'Realistic',
-  generous: 'Generous',
-}
-
-type Tab = 'basic' | 'advanced'
-
 function toggle<T>(list: T[], item: T): T[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 }
@@ -86,56 +83,45 @@ function toggle<T>(list: T[], item: T): T[] {
 interface Props {
   filters: Filters
   onChange: (filters: Filters) => void
-  estimate: EstimateLevel
-  onEstimateChange: (estimate: EstimateLevel) => void
 }
 
-export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: Props) {
-  const [tab, setTab] = useState<Tab>('basic')
+export function FilterPanel({ filters, onChange }: Props) {
+  const [tab, setTab] = useState<FilterTab>('basics')
   const update = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
-
-  const tabs: { id: Tab; label: string; active: number }[] = [
-    { id: 'basic', label: 'Basic', active: countActiveBasic(filters) },
-    { id: 'advanced', label: 'Advanced', active: countActiveAdvanced(filters) },
-  ]
+  const active = countActive(filters)
 
   // Arrow keys move between tabs, per the ARIA tabs pattern.
   const onTabKeyDown = (e: KeyboardEvent) => {
-    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
-    const next = tab === 'basic' ? 'advanced' : 'basic'
+    const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0
+    if (step === 0) return
+    const index = TABS.findIndex((t) => t.value === tab)
+    const next = TABS[(index + step + TABS.length) % TABS.length].value
     setTab(next)
     document.getElementById(`tab-${next}`)?.focus()
   }
 
   return (
     <aside className="panel">
-      <div className="estimate">
-        <Field label="Estimate" value={ESTIMATE_LABELS[estimate]}>
-          <EstimateSlider value={estimate} onChange={onEstimateChange} />
-          <p className="hint">{ESTIMATES[estimate].description}</p>
-        </Field>
-      </div>
-
       <div className="tabs" role="tablist" aria-label="Filters" onKeyDown={onTabKeyDown}>
-        {tabs.map((t) => (
+        {TABS.map((t) => (
           <button
-            key={t.id}
+            key={t.value}
             type="button"
             role="tab"
-            id={`tab-${t.id}`}
-            aria-selected={tab === t.id}
-            aria-controls={`panel-${t.id}`}
-            tabIndex={tab === t.id ? 0 : -1}
+            id={`tab-${t.value}`}
+            aria-selected={tab === t.value}
+            aria-controls={`panel-${t.value}`}
+            tabIndex={tab === t.value ? 0 : -1}
             className="tab"
-            onClick={() => setTab(t.id)}
+            onClick={() => setTab(t.value)}
           >
             {t.label}
-            {t.active > 0 && <span className="badge">{t.active}</span>}
+            {active[t.value] > 0 && <span className="badge">{active[t.value]}</span>}
           </button>
         ))}
       </div>
 
-      <div className="tab-panel" role="tabpanel" id="panel-basic" aria-labelledby="tab-basic" hidden={tab !== 'basic'}>
+      <TabPanel id="basics" current={tab}>
         <Field label="Looking for">
           <Segmented
             label="Looking for"
@@ -165,6 +151,26 @@ export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: P
           />
         </Field>
 
+        <Field label="Born in the US?">
+          <ChipGroup
+            label="Born in the US?"
+            options={NATIVITY_OPTIONS}
+            selected={filters.nativity}
+            onToggle={(nativity) => update({ nativity: toggle(filters.nativity, nativity) })}
+          />
+        </Field>
+      </TabPanel>
+
+      <TabPanel id="life" current={tab}>
+        <Field label="Marital status">
+          <ChipGroup
+            label="Marital status"
+            options={MARITAL_OPTIONS}
+            selected={filters.marital}
+            onToggle={(status) => update({ marital: toggle(filters.marital, status) })}
+          />
+        </Field>
+
         <Field label="Height" value={formatHeightRange(filters.heightMin, filters.heightMax, HEIGHT_MIN, HEIGHT_MAX)}>
           <RangeSlider
             label="height"
@@ -177,12 +183,13 @@ export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: P
           />
         </Field>
 
-        <Field label="Marital status">
-          <ChipGroup
-            label="Marital status"
-            options={MARITAL_OPTIONS}
-            selected={filters.marital}
-            onToggle={(status) => update({ marital: toggle(filters.marital, status) })}
+        <Field label="Education" value={EDUCATION_LABELS[filters.minEducation]}>
+          <StepSlider
+            label="Minimum education"
+            steps={EDUCATION_STEPS}
+            value={filters.minEducation}
+            format={(level) => EDUCATION_LABELS[level]}
+            onChange={(minEducation) => update({ minEducation })}
           />
         </Field>
 
@@ -195,16 +202,12 @@ export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: P
             onChange={(minIncome) => update({ minIncome })}
           />
         </Field>
-      </div>
 
-      <div
-        className="tab-panel"
-        role="tabpanel"
-        id="panel-advanced"
-        aria-labelledby="tab-advanced"
-        hidden={tab !== 'advanced'}
-      >
-        <Field label="Deen">
+        <p className="hint">Height and education filters only count adults.</p>
+      </TabPanel>
+
+      <TabPanel id="deen" current={tab}>
+        <Field label="Practice">
           <div className="toggles">
             <Toggle
               label="Prays all 5 daily"
@@ -228,25 +231,6 @@ export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: P
           />
         </Field>
 
-        <Field label="Education" value={EDUCATION_LABELS[filters.minEducation]}>
-          <StepSlider
-            label="Minimum education"
-            steps={EDUCATION_STEPS}
-            value={filters.minEducation}
-            format={(level) => EDUCATION_LABELS[level]}
-            onChange={(minEducation) => update({ minEducation })}
-          />
-        </Field>
-
-        <Field label="Born in the US?">
-          <ChipGroup
-            label="Born in the US?"
-            options={NATIVITY_OPTIONS}
-            selected={filters.nativity}
-            onToggle={(nativity) => update({ nativity: toggle(filters.nativity, nativity) })}
-          />
-        </Field>
-
         <Field label="Convert">
           <Segmented
             label="Convert"
@@ -256,13 +240,27 @@ export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: P
           />
         </Field>
 
-        <p className="hint">Prayer, mosque and education filters only count adults.</p>
-      </div>
+        <p className="hint">Prayer and mosque filters only count adults.</p>
+      </TabPanel>
 
       <button type="button" className="reset" onClick={() => onChange(DEFAULT_FILTERS)}>
         Reset filters
       </button>
     </aside>
+  )
+}
+
+interface TabPanelProps {
+  id: FilterTab
+  current: FilterTab
+  children: ReactNode
+}
+
+function TabPanel({ id, current, children }: TabPanelProps) {
+  return (
+    <div className="tab-panel" role="tabpanel" id={`panel-${id}`} aria-labelledby={`tab-${id}`} hidden={id !== current}>
+      {children}
+    </div>
   )
 }
 
@@ -398,40 +396,6 @@ function RangeSlider({ label, min, max, low, high, formatValue = String, onChang
         onChange={(e) => onChange(low, Math.max(Number(e.target.value), low))}
       />
     </div>
-  )
-}
-
-interface EstimateSliderProps {
-  value: EstimateLevel
-  onChange: (value: EstimateLevel) => void
-}
-
-/** Conservative to generous; the fill grows with how hopeful the estimate is. */
-function EstimateSlider({ value, onChange }: EstimateSliderProps) {
-  const index = ESTIMATE_LEVELS.indexOf(value)
-  const percent = `${(index / (ESTIMATE_LEVELS.length - 1)) * 100}%`
-
-  return (
-    <>
-      <div className="range" style={{ '--lo': '0%', '--hi': percent } as CSSProperties}>
-        <div className="range-track" />
-        <div className="range-fill" />
-        <input
-          type="range"
-          min={0}
-          max={ESTIMATE_LEVELS.length - 1}
-          value={index}
-          aria-label="Estimate"
-          aria-valuetext={ESTIMATE_LABELS[value]}
-          onChange={(e) => onChange(ESTIMATE_LEVELS[Number(e.target.value)])}
-        />
-      </div>
-      <div className="range-labels" aria-hidden="true">
-        {ESTIMATE_LEVELS.map((level) => (
-          <span key={level}>{ESTIMATE_LABELS[level]}</span>
-        ))}
-      </div>
-    </>
   )
 }
 

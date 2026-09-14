@@ -52,9 +52,9 @@ Approximated:
 
 Height depends on sex, ethnicity and birthplace. Improve these before quoting any result.
 
-## Estimate slider
+## Estimate
 
-The slider above the filters sets how hopeful the count is. It moves the biggest uncertainties within plausible ranges:
+The Conservative / Realistic / Generous switch under the count sets how hopeful the count is. It moves the biggest uncertainties within plausible ranges:
 
 | | Conservative | Realistic (default) | Generous |
 | --- | --- | --- | --- |
@@ -64,9 +64,10 @@ The slider above the filters sets how hopeful the count is. It moves the biggest
 
 The model is calibrated and tested at Realistic.
 
-Filters: gender, age range, ethnicity (Arab / Black / Desi / White / Other), height range, marital status (never married / divorced, no kids / divorced with kids / widowed / married), and minimum income.
-
-Advanced filters: prays all 5 daily, goes to mosque weekly, sect (Sunni / Shia / Just Muslim / Other), minimum education, born in the US (immigrant / 2nd gen / 3rd gen+), and convert (born Muslim / convert).
+Filters, in three tabs:
+- **Basics:** gender, age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
+- **Life:** marital status (never married / divorced, no kids / divorced with kids / widowed / married), height range, minimum education, and minimum income.
+- **Deen:** prays all 5 daily, goes to mosque weekly, sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
 
 ## Tests
 

@@ -28,19 +28,19 @@ body {
 .app {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 40px 24px 24px;
+  padding: 24px 24px 24px;
 }
 
 /* Header */
 
 .header {
   text-align: center;
-  margin-bottom: 32px;
+  margin-bottom: 20px;
 }
 
 .header h1 {
   margin: 0;
-  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  font-size: clamp(2.2rem, 6vw, 3rem);
   font-weight: 300;
   letter-spacing: 0.01em;
 }
@@ -59,7 +59,7 @@ body {
 
 .layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 320px 1fr;
   gap: 32px;
   align-items: start;
 }
@@ -76,10 +76,10 @@ body {
   background: var(--panel);
   border: 1px solid var(--panel-border);
   border-radius: 16px;
-  padding: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
 }
 
 .field-head {
@@ -89,7 +89,7 @@ body {
 }
 
 .field-label {
-  margin: 0 0 12px;
+  margin: 0 0 8px;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -142,11 +142,11 @@ body {
 .chip {
   border: 1px solid var(--panel-border);
   border-radius: 999px;
-  padding: 6px 12px;
+  padding: 5px 11px;
   background: transparent;
   color: var(--muted);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   cursor: pointer;
   transition: background 150ms, border-color 150ms, color 150ms;
 }
@@ -162,26 +162,9 @@ body {
   color: var(--text);
 }
 
-.estimate {
-  padding-bottom: 22px;
-  border-bottom: 1px solid var(--panel-border);
-}
-
-.estimate .hint {
-  margin-top: 10px;
-}
-
-.range-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 2px;
-  font-size: 0.75rem;
-  color: var(--muted);
-}
-
 .tabs {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 4px;
   padding: 4px;
   border-radius: 10px;
@@ -228,7 +211,7 @@ body {
 .tab-panel {
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 20px;
 }
 
 .tab-panel[hidden] {
@@ -435,8 +418,24 @@ body {
   }
 }
 
+.estimate {
+  width: min(100%, 360px);
+  margin-top: 14px;
+}
+
+.segmented--compact button {
+  padding: 6px 4px;
+  font-size: 0.82rem;
+}
+
+.estimate-description {
+  margin: 6px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 .legend {
-  margin-top: 16px;
+  margin-top: 12px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -473,11 +472,11 @@ body {
   }
 
   /*
-   * Size the circle so the whole results column fits beside the filters even when
-   * scrolled to the bottom (count, legend and the footer below take ~320px).
+   * Size the circle so the whole results column fits on screen (the count, estimate
+   * switch, legend and footer take ~380px).
    */
   .people-circle {
-    max-width: max(260px, min(560px, calc(100vh - 320px)));
+    max-width: max(260px, min(560px, calc(100vh - 380px)));
   }
 }
 

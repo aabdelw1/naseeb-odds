@@ -6,13 +6,13 @@ import {
   ALL_MARITAL_STATUSES,
   ALL_NATIVITIES,
   ALL_SECTS,
-  countActiveAdvanced,
-  countActiveBasic,
+  countActive,
   countMatching,
   DEFAULT_FILTERS,
   EDUCATION_STEPS,
   INCOME_STEPS,
   totalPopulation,
+  type FilterTab,
   type Filters,
 } from '../lib/filters'
 import { seededRandom } from './helpers'
@@ -112,15 +112,26 @@ describe('baseline', () => {
     }
   })
 
-  it('counts each changed filter on the right tab', () => {
-    const basic = ['sex', 'age', 'ethnicity', 'height', 'marital', 'income']
-    expect([countActiveBasic(DEFAULT_FILTERS), countActiveAdvanced(DEFAULT_FILTERS)]).toEqual([0, 0])
+  it('counts each changed filter on its tab', () => {
+    const tabOf: Record<string, FilterTab> = {
+      sex: 'basics',
+      age: 'basics',
+      ethnicity: 'basics',
+      nativity: 'basics',
+      marital: 'life',
+      height: 'life',
+      education: 'life',
+      income: 'life',
+      prays: 'deen',
+      mosque: 'deen',
+      sect: 'deen',
+      convert: 'deen',
+    }
+    const none = { basics: 0, life: 0, deen: 0 }
+    expect(countActive(DEFAULT_FILTERS)).toEqual(none)
     for (const name of NAMES) {
       for (const patch of DIMENSIONS[name].slice(1)) {
-        const filters = build(patch)
-        expect([countActiveBasic(filters), countActiveAdvanced(filters)], JSON.stringify(patch)).toEqual(
-          basic.includes(name) ? [1, 0] : [0, 1],
-        )
+        expect(countActive(build(patch)), JSON.stringify(patch)).toEqual({ ...none, [tabOf[name]]: 1 })
       }
     }
   })

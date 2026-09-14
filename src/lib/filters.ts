@@ -60,8 +60,6 @@ export interface Filters {
   marital: MaritalStatus[]
   /** Minimum annual personal earnings; 0 means any. */
   minIncome: number
-
-  // Advanced filters.
   praysFiveDaily: boolean
   mosqueWeekly: boolean
   /** Sects to include; empty matches nobody. */
@@ -89,26 +87,31 @@ export const DEFAULT_FILTERS: Filters = {
   convert: 'any',
 }
 
-export function countActiveBasic(filters: Filters): number {
-  return [
-    filters.sex !== 'any',
-    filters.ageMin !== AGE_MIN || filters.ageMax !== AGE_MAX,
-    filters.ethnicities.length !== ALL_ETHNICITIES.length,
-    filters.heightMin !== HEIGHT_MIN || filters.heightMax !== HEIGHT_MAX,
-    filters.marital.length !== ALL_MARITAL_STATUSES.length,
-    filters.minIncome > 0,
-  ].filter(Boolean).length
-}
+export type FilterTab = 'basics' | 'life' | 'deen'
 
-export function countActiveAdvanced(filters: Filters): number {
-  return [
-    filters.praysFiveDaily,
-    filters.mosqueWeekly,
-    filters.sects.length !== ALL_SECTS.length,
-    filters.minEducation !== 'any',
-    filters.nativity.length !== ALL_NATIVITIES.length,
-    filters.convert !== 'any',
-  ].filter(Boolean).length
+/** How many filters on each tab differ from their defaults. */
+export function countActive(filters: Filters): Record<FilterTab, number> {
+  const active = (checks: boolean[]) => checks.filter(Boolean).length
+  return {
+    basics: active([
+      filters.sex !== 'any',
+      filters.ageMin !== AGE_MIN || filters.ageMax !== AGE_MAX,
+      filters.ethnicities.length !== ALL_ETHNICITIES.length,
+      filters.nativity.length !== ALL_NATIVITIES.length,
+    ]),
+    life: active([
+      filters.marital.length !== ALL_MARITAL_STATUSES.length,
+      filters.heightMin !== HEIGHT_MIN || filters.heightMax !== HEIGHT_MAX,
+      filters.minEducation !== 'any',
+      filters.minIncome > 0,
+    ]),
+    deen: active([
+      filters.praysFiveDaily,
+      filters.mosqueWeekly,
+      filters.sects.length !== ALL_SECTS.length,
+      filters.convert !== 'any',
+    ]),
+  }
 }
 
 /** Muslims of all ages under an estimate level. */
