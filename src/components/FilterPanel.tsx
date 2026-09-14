@@ -1,5 +1,6 @@
 import { useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import type { Nativity } from '../data/background'
+import { ESTIMATE_LEVELS, ESTIMATES, type EstimateLevel } from '../data/estimates'
 import { AGE_MAX, AGE_MIN, HEIGHT_MAX, HEIGHT_MIN, type Ethnicity } from '../data/population'
 import type { Sect } from '../data/religion'
 import {
@@ -70,6 +71,12 @@ const EDUCATION_LABELS: Record<MinEducation, string> = {
   graduate: 'Grad degree',
 }
 
+const ESTIMATE_LABELS: Record<EstimateLevel, string> = {
+  conservative: 'Conservative',
+  realistic: 'Realistic',
+  generous: 'Generous',
+}
+
 type Tab = 'basic' | 'advanced'
 
 function toggle<T>(list: T[], item: T): T[] {
@@ -79,9 +86,11 @@ function toggle<T>(list: T[], item: T): T[] {
 interface Props {
   filters: Filters
   onChange: (filters: Filters) => void
+  estimate: EstimateLevel
+  onEstimateChange: (estimate: EstimateLevel) => void
 }
 
-export function FilterPanel({ filters, onChange }: Props) {
+export function FilterPanel({ filters, onChange, estimate, onEstimateChange }: Props) {
   const [tab, setTab] = useState<Tab>('basic')
   const update = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
 
@@ -100,6 +109,13 @@ export function FilterPanel({ filters, onChange }: Props) {
 
   return (
     <aside className="panel">
+      <div className="estimate">
+        <Field label="Estimate" value={ESTIMATE_LABELS[estimate]}>
+          <EstimateSlider value={estimate} onChange={onEstimateChange} />
+          <p className="hint">{ESTIMATES[estimate].description}</p>
+        </Field>
+      </div>
+
       <div className="tabs" role="tablist" aria-label="Filters" onKeyDown={onTabKeyDown}>
         {tabs.map((t) => (
           <button
@@ -382,6 +398,40 @@ function RangeSlider({ label, min, max, low, high, formatValue = String, onChang
         onChange={(e) => onChange(low, Math.max(Number(e.target.value), low))}
       />
     </div>
+  )
+}
+
+interface EstimateSliderProps {
+  value: EstimateLevel
+  onChange: (value: EstimateLevel) => void
+}
+
+/** Conservative to generous; the fill grows with how hopeful the estimate is. */
+function EstimateSlider({ value, onChange }: EstimateSliderProps) {
+  const index = ESTIMATE_LEVELS.indexOf(value)
+  const percent = `${(index / (ESTIMATE_LEVELS.length - 1)) * 100}%`
+
+  return (
+    <>
+      <div className="range" style={{ '--lo': '0%', '--hi': percent } as CSSProperties}>
+        <div className="range-track" />
+        <div className="range-fill" />
+        <input
+          type="range"
+          min={0}
+          max={ESTIMATE_LEVELS.length - 1}
+          value={index}
+          aria-label="Estimate"
+          aria-valuetext={ESTIMATE_LABELS[value]}
+          onChange={(e) => onChange(ESTIMATE_LEVELS[Number(e.target.value)])}
+        />
+      </div>
+      <div className="range-labels" aria-hidden="true">
+        {ESTIMATE_LEVELS.map((level) => (
+          <span key={level}>{ESTIMATE_LABELS[level]}</span>
+        ))}
+      </div>
+    </>
   )
 }
 

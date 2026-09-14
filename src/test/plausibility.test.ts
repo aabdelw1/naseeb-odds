@@ -196,21 +196,30 @@ describe('converts', () => {
   })
 })
 
-describe('height depends on sex and ethnicity', () => {
-  it('ranks 6-foot brothers: Black, Arab, White, Other, Desi', () => {
-    const order = ['black', 'arab', 'white', 'other', 'desi'] as const
-    const rates = order.map((e) => share({ heightMin: 72 }, { sex: 'male', ethnicities: [e] }))
-    rates.slice(1).forEach((rate, i) => expect(rate).toBeLessThan(rates[i]))
+describe('height depends on sex, ethnicity and birthplace', () => {
+  it('ranks 5\'10"+ immigrant brothers: Black, Arab, White, Desi, Other', () => {
+    const order = ['black', 'arab', 'white', 'desi', 'other'] as const
+    const rates = order.map((e) => share({ heightMin: 70 }, { sex: 'male', ethnicities: [e], nativity: ['immigrant'] }))
+    rates.slice(1).forEach((rate, i) => expect(rate, `${order[i + 1]} vs ${order[i]}`).toBeLessThan(rates[i]))
+  })
+
+  it('US-born brothers are taller than immigrant brothers of the same ethnicity', () => {
+    for (const e of ALL_ETHNICITIES) {
+      const usBorn = share({ heightMin: 70 }, { sex: 'male', ethnicities: [e], ...US_BORN })
+      const immigrant = share({ heightMin: 70 }, { sex: 'male', ethnicities: [e], nativity: ['immigrant'] })
+      expect(usBorn, e).toBeGreaterThan(immigrant)
+    }
   })
 
   it("sisters 5'10\" and up are rare", () => {
     expect(share({ heightMin: 70 }, { sex: 'female' })).toBeLessThan(0.05)
   })
 
-  it('height is the same across other traits within a sex and ethnicity', () => {
+  it('height is the same across other traits within a sex, ethnicity and birthplace', () => {
     for (const e of ALL_ETHNICITIES) {
-      const base = share({ heightMin: 70 }, { sex: 'male', ethnicities: [e] })
-      const rich = share({ heightMin: 70 }, { sex: 'male', ethnicities: [e], minIncome: 100_000 })
+      const given: Partial<Filters> = { sex: 'male', ethnicities: [e], nativity: ['immigrant'] }
+      const base = share({ heightMin: 70 }, given)
+      const rich = share({ heightMin: 70 }, { ...given, minIncome: 100_000 })
       expect(Math.abs(rich - base)).toBeLessThan(0.01)
     }
   })

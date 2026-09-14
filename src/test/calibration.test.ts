@@ -6,6 +6,7 @@ import {
   MARITAL_BY_BIRTHPLACE,
   MARRIED_SHARE,
   NATIVITY_SHARES,
+  RACE_BY_GENERATION,
   type Birthplace,
 } from '../data/background'
 import { EMPLOYED_SHARE } from '../data/earnings'
@@ -24,7 +25,7 @@ const US_BORN: Partial<Filters> = { nativity: ['secondGen', 'thirdGen'] }
 const BIRTHPLACE_FILTER: Record<Birthplace, Partial<Filters>> = { immigrant: { nativity: ['immigrant'] }, usBorn: US_BORN }
 
 describe('population (Pew 2017, ISPU 2025)', () => {
-  it('has 2.15M adults, 56% of them men', () => {
+  it('matches the adult population, 56% of them men', () => {
     expect(Math.abs(count() - ADULT_POPULATION)).toBeLessThanOrEqual(2)
     expectNear(share({ sex: 'male' }), ADULT_SEX_SHARE.male, 0.003, 'men')
   })
@@ -39,6 +40,30 @@ describe('population (Pew 2017, ISPU 2025)', () => {
     // Black Muslims split by birthplace rather than their share of all adults.
     const { usBorn, immigrant } = BLACK_SHARE_BY_BIRTHPLACE
     expectNear(share(US_BORN, { ethnicities: ['black'] }), usBorn / (usBorn + immigrant), 0.03, 'Black Muslims US-born')
+  })
+
+  it("roughly matches Pew's race mix within each generation", () => {
+    // Black Muslims are 23% here vs Pew's 20%, hence the loose tolerance.
+    for (const nativity of ALL_NATIVITIES) {
+      const given: Partial<Filters> = { nativity: [nativity] }
+      expectNear(share({ ethnicities: ['black'] }, given), RACE_BY_GENERATION.black[nativity], 0.05, `Black, ${nativity}`)
+      expectNear(
+        share({ ethnicities: ['arab', 'white'] }, given),
+        RACE_BY_GENERATION.white[nativity],
+        0.05,
+        `Arab or White, ${nativity}`,
+      )
+    }
+  })
+
+  it("keeps ISPU's gaps in how often each group stops at high school", () => {
+    const odds = (p: number) => p / (1 - p)
+    const modelOdds = (e: Ethnicity) => odds(1 - share({ minEducation: 'someCollege' }, { ethnicities: [e] }))
+    for (const e of ['black', 'white', 'arab'] as Ethnicity[]) {
+      const modelRatio = modelOdds(e) / modelOdds('desi')
+      const sourceRatio = odds(ETHNIC_GROUPS[e].highSchoolOrLess) / odds(ETHNIC_GROUPS.desi.highSchoolOrLess)
+      expect(Math.abs(modelRatio / sourceRatio - 1), `${e} vs Desi: ${modelRatio.toFixed(2)} vs ${sourceRatio.toFixed(2)}`).toBeLessThan(0.1)
+    }
   })
 
   it('matches the younger age mix of US-born Muslims', () => {
@@ -163,8 +188,13 @@ describe('earnings (Pew 2017, ISPU 2025)', () => {
 
 describe('height (CDC NHANES)', () => {
   it('gives the normal-curve share of 6-footers', () => {
-    const black = ETHNIC_GROUPS.black.meanHeight.male
-    const expected = 1 - normalCdf((71.5 - black) / HEIGHT_SD.male)
-    expectNear(share({ heightMin: 72 }, { sex: 'male', ethnicities: ['black'] }), expected, 0.003, 'Black men 6ft+')
+    const mean = ETHNIC_GROUPS.black.meanHeight.usBorn.male
+    const expected = 1 - normalCdf((71.5 - mean) / HEIGHT_SD.male)
+    expectNear(
+      share({ heightMin: 72 }, { sex: 'male', ethnicities: ['black'], ...US_BORN }),
+      expected,
+      0.003,
+      'US-born Black men 6ft+',
+    )
   })
 })

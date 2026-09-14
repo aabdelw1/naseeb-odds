@@ -6,7 +6,8 @@ const MAX_RADIUS = VIEW * 0.42
 const MIN_RADIUS_FRACTION = 0.2
 /** How hard the circle shrinks as the pool narrows: 10x fewer people ≈ 70% the radius. */
 const SHRINK_EXPONENT = 0.15
-const MAX_ICONS = 400
+/** Enough for 5.5M people at 10,000 per icon, so the opening circle stays full at every estimate. */
+const MAX_ICONS = 600
 const MIN_ICON_SIZE = 24
 const ICON_FILL = 0.92
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5))

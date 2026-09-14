@@ -162,6 +162,23 @@ body {
   color: var(--text);
 }
 
+.estimate {
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.estimate .hint {
+  margin-top: 10px;
+}
+
+.range-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
 .tabs {
   display: grid;
   grid-template-columns: 1fr 1fr;

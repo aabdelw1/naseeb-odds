@@ -1,4 +1,5 @@
-import { EDUCATION_LEVELS, type EducationLevel, type Nativity } from '../data/background'
+import { EDUCATION_LEVELS, type Birthplace, type EducationLevel, type Nativity } from '../data/background'
+import { ESTIMATES, type EstimateLevel } from '../data/estimates'
 import {
   AGE_MAX,
   AGE_MIN,
@@ -6,13 +7,15 @@ import {
   HEIGHT_MAX,
   HEIGHT_MIN,
   HEIGHT_SD,
+  TOTAL_POPULATION,
+  US_MUSLIM_POPULATION,
   type Ethnicity,
   type MaritalStatus,
   type Sex,
 } from '../data/population'
 import { PRAYER_MOSQUE_CORRELATION, type Sect } from '../data/religion'
 import { CELLS, incomeShare } from './model'
-import { normalCdf } from './stats'
+import { logit, normalCdf, sigmoid } from './stats'
 
 export type { MaritalStatus }
 
@@ -108,7 +111,15 @@ export function countActiveAdvanced(filters: Filters): number {
   ].filter(Boolean).length
 }
 
-export function countMatching(filters: Filters): number {
+/** Muslims of all ages under an estimate level. */
+export function totalPopulation(estimate: EstimateLevel = 'realistic'): number {
+  return Math.round((TOTAL_POPULATION * ESTIMATES[estimate].population) / US_MUSLIM_POPULATION)
+}
+
+export function countMatching(filters: Filters, estimate: EstimateLevel = 'realistic'): number {
+  const { population, practiceShift, earningsFactor } = ESTIMATES[estimate]
+  const scale = population / US_MUSLIM_POPULATION
+  const practice = (p: number) => (practiceShift === 0 ? p : sigmoid(logit(p) + practiceShift))
   const lo = filters.ageMin
   const hi = filters.ageMax + 1
   const ethnicities = new Set(filters.ethnicities)
@@ -133,17 +144,17 @@ export function countMatching(filters: Filters): number {
     if (cell.educationRank < minEducationRank) continue
 
     let share = overlap / (band.max - band.min)
-    if (heights) share *= heights[cell.sex][cell.ethnicity]
-    if (filters.minIncome > 0) share *= incomeShare(cell, filters.minIncome)
+    if (heights) share *= heights[cell.sex][cell.ethnicity][cell.birthplace]
+    if (filters.minIncome > 0) share *= incomeShare(cell, filters.minIncome, cell.medianIncome * earningsFactor)
     if (filters.praysFiveDaily && filters.mosqueWeekly) {
-      share *= bothPractices(cell.praysFiveDaily, cell.mosqueWeekly)
+      share *= bothPractices(practice(cell.praysFiveDaily), practice(cell.mosqueWeekly))
     } else if (filters.praysFiveDaily) {
-      share *= cell.praysFiveDaily
+      share *= practice(cell.praysFiveDaily)
     } else if (filters.mosqueWeekly) {
-      share *= cell.mosqueWeekly
+      share *= practice(cell.mosqueWeekly)
     }
     if (filters.convert !== 'any') share *= filters.convert === 'convert' ? cell.convert : 1 - cell.convert
-    count += cell.weight * share
+    count += cell.weight * scale * share
   }
   return Math.round(count)
 }
@@ -154,21 +165,26 @@ function bothPractices(prays: number, mosque: number): number {
   return independent + PRAYER_MOSQUE_CORRELATION * (Math.min(prays, mosque) - independent)
 }
 
-/** Share of each sex and ethnicity within the height range, or null when height isn't limited. */
-function heightShares(filters: Filters): Record<Sex, Record<Ethnicity, number>> | null {
+type HeightShares = Record<Sex, Record<Ethnicity, Record<Birthplace, number>>>
+
+/** Share within the height range by sex, ethnicity and birthplace, or null when height isn't limited. */
+function heightShares(filters: Filters): HeightShares | null {
   const noLower = filters.heightMin <= HEIGHT_MIN
   const noUpper = filters.heightMax >= HEIGHT_MAX
   if (noLower && noUpper) return null
   // Heights are whole inches, so 5'10" covers everyone from 5'9.5" to 5'10.5".
   const lower = noLower ? -Infinity : filters.heightMin - 0.5
   const upper = noUpper ? Infinity : filters.heightMax + 0.5
-  const shareFor = (sex: Sex) =>
+  const between = (mean: number, sd: number) => normalCdf((upper - mean) / sd) - normalCdf((lower - mean) / sd)
+  const forSex = (sex: Sex) =>
     Object.fromEntries(
       (Object.keys(ETHNIC_GROUPS) as Ethnicity[]).map((ethnicity) => {
-        const mean = ETHNIC_GROUPS[ethnicity].meanHeight[sex]
-        const sd = HEIGHT_SD[sex]
-        return [ethnicity, normalCdf((upper - mean) / sd) - normalCdf((lower - mean) / sd)]
+        const { immigrant, usBorn } = ETHNIC_GROUPS[ethnicity].meanHeight
+        return [
+          ethnicity,
+          { immigrant: between(immigrant[sex], HEIGHT_SD[sex]), usBorn: between(usBorn[sex], HEIGHT_SD[sex]) },
+        ]
       }),
-    ) as Record<Ethnicity, number>
-  return { male: shareFor('male'), female: shareFor('female') }
+    ) as Record<Ethnicity, Record<Birthplace, number>>
+  return { male: forSex('male'), female: forSex('female') }
 }

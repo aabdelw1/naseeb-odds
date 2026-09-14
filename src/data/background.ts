@@ -33,6 +33,12 @@ export const AGE_BY_BIRTHPLACE: ({ minAge: number } & Record<Birthplace, number>
 /** Black Muslims as a share of all Muslim adults, by birthplace. */
 export const BLACK_SHARE_BY_BIRTHPLACE: Record<Birthplace, number> = { immigrant: 0.06, usBorn: 0.13 }
 
+/** Race within each generation. Pew's "white" includes Arabs, so it compares with Arab + White here. */
+export const RACE_BY_GENERATION: Record<'black' | 'white', Record<Nativity, number>> = {
+  black: { immigrant: 0.11, secondGen: 0.07, thirdGen: 0.51 },
+  white: { immigrant: 0.45, secondGen: 0.52, thirdGen: 0.23 },
+}
+
 /** Highest degree among adults (US-born row rounded so it sums to 1). */
 export const EDUCATION_BY_BIRTHPLACE: Record<Birthplace, Record<EducationLevel, number>> = {
   immigrant: { lessThanHighSchool: 0.1, highSchool: 0.27, someCollege: 0.25, bachelors: 0.23, graduate: 0.15 },

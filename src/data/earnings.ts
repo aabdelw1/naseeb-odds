@@ -38,6 +38,18 @@ export const FEMALE_EARNINGS = { earners: 0.75, median: 0.82 }
 /** Pew 2017: 44% of Muslim adults work full-time and 16% part-time. */
 export const EMPLOYED_SHARE = 0.6
 
+/**
+ * BLS employment-population ratio by education, ages 25+, August 2026. Used for how much
+ * likelier degree holders are to have earnings; the overall level is scaled to EMPLOYED_SHARE.
+ */
+export const EMPLOYMENT_BY_EDUCATION: Record<EducationLevel, number> = {
+  lessThanHighSchool: 0.426,
+  highSchool: 0.536,
+  someCollege: 0.596,
+  bachelors: 0.692,
+  graduate: 0.692,
+}
+
 /** Pew 2017 household incomes of $100k+: all Muslims, immigrants, US-born. */
 export const HOUSEHOLD_100K_PLUS = { all: 0.24, immigrant: 0.29, usBorn: 0.18 }
 

@@ -1,17 +1,19 @@
 import { useMemo, useRef, useState } from 'react'
 import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
-import { TOTAL_POPULATION } from './data/population'
-import { countMatching, DEFAULT_FILTERS, type Filters } from './lib/filters'
+import type { EstimateLevel } from './data/estimates'
+import { countMatching, DEFAULT_FILTERS, totalPopulation, type Filters } from './lib/filters'
 import { formatCount, formatPercent } from './lib/format'
 import { useIsVisible } from './lib/useIsVisible'
 import { useTweenedNumber } from './lib/useTweenedNumber'
 
 export default function App() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
-  // The count animates every frame, so only recount when the filters change.
-  const count = useMemo(() => countMatching(filters), [filters])
-  const layout = useMemo(() => layoutCircle(count, TOTAL_POPULATION), [count])
+  const [estimate, setEstimate] = useState<EstimateLevel>('realistic')
+  const total = totalPopulation(estimate)
+  // The count animates every frame, so only recount when the inputs change.
+  const count = useMemo(() => countMatching(filters, estimate), [filters, estimate])
+  const layout = useMemo(() => layoutCircle(count, total), [count, total])
   const tweenedCount = useTweenedNumber(count)
   const displayedCount = formatCount(Math.round(tweenedCount))
   const countRef = useRef<HTMLDivElement>(null)
@@ -29,14 +31,14 @@ export default function App() {
       </header>
 
       <main className="layout">
-        <FilterPanel filters={filters} onChange={setFilters} />
+        <FilterPanel filters={filters} onChange={setFilters} estimate={estimate} onEstimateChange={setEstimate} />
 
         <section className="results" aria-live="polite">
           <div className="count" ref={countRef}>
             {displayedCount}
           </div>
           <div className="count-caption">
-            Muslims in the US · <strong>{formatPercent(count / TOTAL_POPULATION)}</strong> of the ummah here
+            Muslims in the US · <strong>{formatPercent(count / total)}</strong> of the ummah here
           </div>
 
           <div className="legend">
@@ -55,7 +57,8 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Estimates from Pew Research Center (2017), ISPU American Muslim Poll (2025), BLS and CDC NHANES. Just for fun.
+        Estimates from Pew Research Center, ISPU American Muslim Poll (2025), US Religion Census (2020), BLS and CDC
+        NHANES. Just for fun.
       </footer>
 
       {/* On phones the results sit below the filters, so keep the count on screen. */}

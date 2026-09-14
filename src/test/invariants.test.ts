@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ESTIMATE_LEVELS } from '../data/estimates'
 import { ADULT_POPULATION, HEIGHT_MAX, HEIGHT_MIN, TOTAL_POPULATION } from '../data/population'
 import {
   ALL_ETHNICITIES,
@@ -11,6 +12,7 @@ import {
   DEFAULT_FILTERS,
   EDUCATION_STEPS,
   INCOME_STEPS,
+  totalPopulation,
   type Filters,
 } from '../lib/filters'
 import { seededRandom } from './helpers'
@@ -102,6 +104,12 @@ describe('baseline', () => {
   it('counts everyone with no filters and every adult from 18 up', () => {
     expect(Math.abs(countMatching(DEFAULT_FILTERS) - TOTAL_POPULATION)).toBeLessThanOrEqual(2)
     expect(Math.abs(countMatching(build({ ageMin: 18 })) - ADULT_POPULATION)).toBeLessThanOrEqual(2)
+  })
+
+  it('counts everyone under every estimate level', () => {
+    for (const level of ESTIMATE_LEVELS) {
+      expect(Math.abs(countMatching(DEFAULT_FILTERS, level) - totalPopulation(level)), level).toBeLessThanOrEqual(2)
+    }
   })
 
   it('counts each changed filter on the right tab', () => {
@@ -204,6 +212,17 @@ describe('random combinations of every filter', () => {
       const short = adultCombo({ heightMin: HEIGHT_MIN, heightMax: 67 })
       const any = adultCombo({ heightMin: HEIGHT_MIN, heightMax: HEIGHT_MAX })
       if (Math.abs(tall + short - any) > 2) failures.push(`height in ${describeCombo(combo)}: ${tall}+${short} vs ${any}`)
+    }
+    expect(failures).toEqual([])
+  })
+
+  it('grow from conservative to realistic to generous', () => {
+    const failures: string[] = []
+    for (const combo of COMBOS) {
+      const [conservative, realistic, generous] = ESTIMATE_LEVELS.map((level) => countMatching(build(...combo), level))
+      if (conservative > realistic + 1 || realistic > generous + 1) {
+        failures.push(`${describeCombo(combo)}: ${conservative} / ${realistic} / ${generous}`)
+      }
     }
     expect(failures).toEqual([])
   })

@@ -8,11 +8,13 @@
 // more often married, converts are mostly US-born, and so on.
 //
 // Researched:
-// - Totals: Pew Research Center (2017), ~3.45M Muslims in the US, ~2.15M adults.
-// - Ethnicity mix and adult sex ratio: ISPU American Muslim Poll (2025), blended with Pew.
-// - Heights: CDC NHANES (2015–2018) by race, blended with home-country averages.
+// - Total: ~4.5M Muslims of all ages (US Religion Census 2020), with Pew 2017's age mix.
+// - Ethnicity mix, adult sex ratio and education gaps between groups: ISPU American
+//   Muslim Poll (2025), blended with Pew.
+// - Heights: CDC NHANES (2015–2018) by race for US-born Muslims; home-country averages
+//   for immigrants.
 // - Religion, education, generation and marriage by birthplace: Pew 2017 (religion.ts,
-//   background.ts). Earnings by education: BLS; income by race: ISPU (earnings.ts).
+//   background.ts). Earnings by education: BLS; income by race: ISPU and Pew (earnings.ts).
 //
 // Approximated (replace with better sources before sharing results widely):
 // - 5-year age bands interpolated from Pew's broad adult brackets
@@ -21,7 +23,7 @@
 // - the share of divorced people with kids
 // - generation and sect mix within each ethnicity
 
-import type { Nativity } from './background'
+import type { Birthplace, Nativity } from './background'
 import type { Sect } from './religion'
 
 export type Sex = 'male' | 'female'
@@ -54,20 +56,31 @@ export interface AgeBand {
 export interface EthnicGroup {
   /** Share of US Muslims; all groups sum to 1. */
   share: number
-  /** Mean adult height in inches. */
-  meanHeight: Record<Sex, number>
+  /** Mean adult height in inches, for immigrants and for the US-born. */
+  meanHeight: Record<Birthplace, Record<Sex, number>>
   /** Generation mix of adults; sums to 1. */
   nativity: Record<Nativity, number>
   /** Sect mix; sums to 1. */
   sects: Record<Sect, number>
-  /** Share of households earning $100k+ (ISPU 2025), used for each group's relative earnings. */
+  /** ISPU 2025 share with a high school diploma or less; the model keeps the gaps between groups. */
+  highSchoolOrLess: number
+  /** ISPU 2025 share of households earning $100k+, used for each group's relative earnings. */
   householdIncome100kPlus: number
+  /** Earnings of US-born members relative to US-born Muslims overall (see ETHNIC_GROUPS). */
+  usBornEarnings: number
 }
 
 export const AGE_MIN = 0
 /** The last band is really "75+"; the slider tops out here and shows "90+". */
 export const AGE_MAX = 90
 export const ADULT_AGE = 18
+
+/**
+ * US Religion Census 2020 counted ~4.45M Muslims; Pew's 2023–24 Religious Landscape Study
+ * puts Muslims at about 1% of US adults, in line with that. Pew's 2017 estimate was 3.45M.
+ */
+export const US_MUSLIM_POPULATION = 4_500_000
+const PEW_2017_POPULATION = 3_450_000
 
 /** ISPU 2025: 56% of Muslim adults are men. Children are assumed to be 50/50. */
 export const ADULT_SEX_SHARE: Record<Sex, number> = { male: 0.56, female: 0.44 }
@@ -100,75 +113,98 @@ export const HEIGHT_SD: Record<Sex, number> = { male: 2.8, female: 2.6 }
 // South Asian origins (Pakistan, India, Bangladesh). "Other" is mostly Hispanic,
 // Southeast Asian and mixed.
 //
-// Heights (inches). NHANES 2015–2018 means: non-Hispanic white 69.5 / 63.9,
-// non-Hispanic Black 69.3 / 64.0, non-Hispanic Asian 67.1 / 61.5, Hispanic 67.1 / 62.0
-// (men / women). Immigrant-heavy groups (~58% of Muslim adults are foreign-born, Pew)
-// blend 60% home-region average with 40% US average.
+// Heights (inches). US-born children of immigrants grow taller than their parents'
+// home-country averages, so US-born Muslims use NHANES 2015–2018 means for their race
+// group (non-Hispanic white 69.5 / 63.9, Black 69.3 / 64.0, Asian 67.1 / 61.5, Hispanic
+// 67.1 / 62.0, men / women) and immigrants use home-country averages.
 //
-// Generation mix (immigrant / 2nd gen / 3rd gen+), approximated to reproduce Pew's
-// 58% / 18% / 24% overall. Pew's race by generation: Black 11% / 7% / 51%, Asian
-// 41% / 22% / 2%, Hispanic 1% / 17% / 18%; 13% of Muslim adults are US-born Black and 6%
-// foreign-born Black. So Arab and Desi Muslims are mostly immigrants and their children,
-// Black Muslims mostly third generation+, and Hispanic ("other") Muslims mostly US-born.
+// Generation mix (immigrant / 2nd gen / 3rd gen+), fitted to Pew 2017: 58% / 18% / 24%
+// overall, and race within each generation: Black 11% / 7% / 51%, white (including
+// Arabs) 45% / 52% / 23%, Asian 41% / 22% / 2%, Hispanic 1% / 17% / 18%. 13% of Muslim
+// adults are US-born Black and 6% foreign-born Black.
 //
 // Sect mix, approximated to reproduce Pew's Sunni 55% / Shia 16% / just Muslim 14%.
 // Pew: US-born Black Muslims are 45% Sunni and 43% no particular sect or no answer;
 // Iranians (in "white" here) are mostly Shia.
 //
+// High school or less, ISPU 2025: Black 35%, White 14%, Asian 10%. Arab and "other" are
+// not reported.
+//
 // $100k+ household income, ISPU 2025: white 44%, Asian 34%, Arab 19%, Black 7%.
-// "Other" is not reported and is assumed to be 15%.
+// "Other" is not reported and is assumed to be 15%. Those gaps mostly reflect
+// immigrants, so the model fits them through immigrant earnings. US-born earnings
+// follow Pew 2013's second-generation Americans: median household incomes of $67.5k
+// (Asian), $63.2k (white), $48.4k (Hispanic), $43.5k (Black) vs $58.1k overall,
+// square-rooted because education differences are already modelled separately.
 export const ETHNIC_GROUPS: Record<Ethnicity, EthnicGroup> = {
-  // Egypt, Lebanon, Jordan, Iraq, Morocco average 172.1 / 159.4 cm, blended with US average.
   arab: {
     share: 0.23,
-    meanHeight: { male: 68.3, female: 63.1 },
-    nativity: { immigrant: 0.76, secondGen: 0.21, thirdGen: 0.03 },
+    // Immigrants: Egypt, Lebanon, Jordan, Iraq, Morocco average 172.1 / 159.4 cm.
+    // US-born: NHANES non-Hispanic white (the Census counts Arabs as white).
+    meanHeight: { immigrant: { male: 67.8, female: 62.8 }, usBorn: { male: 69.5, female: 63.9 } },
+    nativity: { immigrant: 0.7, secondGen: 0.27, thirdGen: 0.03 },
     sects: { sunni: 0.6, shia: 0.2, justMuslim: 0.1, other: 0.1 },
+    // Not reported; assumed between White (14%) and Asian (10%).
+    highSchoolOrLess: 0.12,
     householdIncome100kPlus: 0.19,
+    usBornEarnings: 1.04,
   },
-  // NHANES non-Hispanic Black.
   black: {
     share: 0.23,
-    meanHeight: { male: 69.3, female: 64.0 },
-    nativity: { immigrant: 0.32, secondGen: 0.08, thirdGen: 0.6 },
+    // Immigrants: Nigeria 174.8 cm (men). US-born: NHANES non-Hispanic Black.
+    meanHeight: { immigrant: { male: 68.8, female: 63.5 }, usBorn: { male: 69.3, female: 64.0 } },
+    nativity: { immigrant: 0.32, secondGen: 0.06, thirdGen: 0.62 },
     sects: { sunni: 0.52, shia: 0.03, justMuslim: 0.22, other: 0.23 },
+    highSchoolOrLess: 0.35,
     householdIncome100kPlus: 0.07,
+    usBornEarnings: 0.87,
   },
-  // India 165 / 152 cm, Pakistan 165.8 / 153.9 cm, blended with NHANES Asian.
   desi: {
     share: 0.25,
-    meanHeight: { male: 66.0, female: 60.7 },
-    nativity: { immigrant: 0.76, secondGen: 0.21, thirdGen: 0.03 },
+    // Immigrants: India 165 / 152 cm, Pakistan 165.8 / 153.9 cm. US-born: NHANES non-Hispanic Asian.
+    meanHeight: { immigrant: { male: 65.1, female: 60.2 }, usBorn: { male: 67.1, female: 61.5 } },
+    nativity: { immigrant: 0.8, secondGen: 0.17, thirdGen: 0.03 },
     sects: { sunni: 0.67, shia: 0.14, justMuslim: 0.09, other: 0.1 },
+    // ISPU's Asian figure.
+    highSchoolOrLess: 0.1,
     householdIncome100kPlus: 0.34,
+    usBornEarnings: 1.08,
   },
-  // Mostly foreign-born: Iran 170.3 / 157.2 cm, Afghanistan 168.2 / 155.3 cm, plus
-  // taller Balkan and Turkish Muslims; about one-third converts at NHANES white height.
   white: {
     share: 0.17,
-    meanHeight: { male: 68.2, female: 62.8 },
-    nativity: { immigrant: 0.6, secondGen: 0.12, thirdGen: 0.28 },
+    // Immigrants: Iran 170.3 / 157.2 cm, Afghanistan 168.2 / 155.3 cm, nudged up for Balkan
+    // and Turkish Muslims. US-born (mostly converts): NHANES non-Hispanic white.
+    meanHeight: { immigrant: { male: 67.3, female: 62.0 }, usBorn: { male: 69.5, female: 63.9 } },
+    nativity: { immigrant: 0.55, secondGen: 0.17, thirdGen: 0.28 },
     sects: { sunni: 0.35, shia: 0.4, justMuslim: 0.12, other: 0.13 },
+    highSchoolOrLess: 0.14,
     householdIncome100kPlus: 0.44,
+    usBornEarnings: 1.04,
   },
-  // Mostly Hispanic: NHANES Hispanic. Many Hispanic Muslims are US-born converts.
   other: {
     share: 0.12,
-    meanHeight: { male: 67.1, female: 62.0 },
-    nativity: { immigrant: 0.25, secondGen: 0.3, thirdGen: 0.45 },
+    // Immigrants: Indonesia 164 / 154.1 cm, Malaysia 165.2 / 154.4 cm. US-born: NHANES Hispanic.
+    meanHeight: { immigrant: { male: 65.0, female: 60.7 }, usBorn: { male: 67.1, female: 62.0 } },
+    nativity: { immigrant: 0.3, secondGen: 0.27, thirdGen: 0.43 },
     sects: { sunni: 0.55, shia: 0.05, justMuslim: 0.2, other: 0.2 },
+    // Not reported; assumed like Black Muslims (second-generation Hispanic Americans have
+    // among the lowest college rates, Pew 2013).
+    highSchoolOrLess: 0.35,
     householdIncome100kPlus: 0.15,
+    usBornEarnings: 0.91,
   },
 }
 
+/** Counts are given in Pew 2017's age mix (summing to 3.45M) and scaled to US_MUSLIM_POPULATION. */
 function band(
   min: number,
   max: number,
-  count: number,
+  pew2017Count: number,
   [neverMarried, married, divorced, widowed]: [number, number, number, number],
   divorcedWithKids: number,
   earners: number,
 ): AgeBand {
+  const count = Math.round((pew2017Count * US_MUSLIM_POPULATION) / PEW_2017_POPULATION)
   return { min, max, count, marital: { neverMarried, married, divorced, widowed }, divorcedWithKids, earners }
 }
 
@@ -178,7 +214,7 @@ export const AGE_BANDS: AgeBand[] = [
   band(5, 10, 340_000, [1, 0, 0, 0], 0, 0),
   band(10, 15, 330_000, [1, 0, 0, 0], 0, 0),
   band(15, 18, 270_000, [0.99, 0.01, 0, 0], 0, 0.2),
-  // Adult bands add up to Pew's brackets: 18–29 35%, 30–39 25%, 40–54 26%, 55+ 14% of 2.15M.
+  // Adult bands add up to Pew's brackets: 18–29 35%, 30–39 25%, 40–54 26%, 55+ 14%.
   band(18, 25, 440_000, [0.88, 0.11, 0.01, 0], 0.3, 0.55),
   band(25, 30, 313_000, [0.55, 0.41, 0.04, 0], 0.5, 0.8),
   band(30, 35, 270_000, [0.33, 0.59, 0.075, 0.005], 0.65, 0.82),
