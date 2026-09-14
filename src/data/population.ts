@@ -11,8 +11,14 @@
 // - 5-year age bands interpolated from Pew's broad adult brackets
 // - marital status by age, shaped like the general US population (ACS)
 // - the share of divorced people with kids, and earnings curves
-// - every filter is treated as independent of the others (e.g. ethnicity doesn't
-//   change the age mix), except height, which depends on sex and ethnicity
+// - most filters are treated as independent of each other (e.g. ethnicity doesn't change
+//   the age mix). The exceptions: height depends on sex and ethnicity; generation
+//   depends on ethnicity; prayer and mosque attendance depend on sex and sect (prayer
+//   also on age); education and converts depend on generation.
+//
+// Religion and background data live in religion.ts and background.ts.
+
+import type { Nativity } from './background'
 
 export type Sex = 'male' | 'female'
 
@@ -46,6 +52,8 @@ export interface EthnicGroup {
   share: number
   /** Mean adult height in inches. */
   meanHeight: Record<Sex, number>
+  /** Generation mix of adults; sums to 1. */
+  nativity: Record<Nativity, number>
 }
 
 export const AGE_MIN = 0
@@ -94,18 +102,42 @@ export const HEIGHT_SD: Record<Sex, number> = { male: 2.8, female: 2.6 }
 // non-Hispanic Black 69.3 / 64.0, non-Hispanic Asian 67.1 / 61.5, Hispanic 67.1 / 62.0
 // (men / women). Immigrant-heavy groups (~58% of Muslim adults are foreign-born, Pew)
 // blend 60% home-region average with 40% US average.
+//
+// Generation mix (immigrant / 2nd gen / 3rd gen+), approximated to reproduce Pew's
+// 58% / 18% / 24% overall. Pew: 13% of Muslim adults are US-born Black and 6% are
+// foreign-born Black; Arab and Desi Muslims are mostly immigrants and their children.
 export const ETHNIC_GROUPS: Record<Ethnicity, EthnicGroup> = {
   // Egypt, Lebanon, Jordan, Iraq, Morocco average 172.1 / 159.4 cm, blended with US average.
-  arab: { share: 0.23, meanHeight: { male: 68.3, female: 63.1 } },
+  arab: {
+    share: 0.23,
+    meanHeight: { male: 68.3, female: 63.1 },
+    nativity: { immigrant: 0.72, secondGen: 0.25, thirdGen: 0.03 },
+  },
   // NHANES non-Hispanic Black.
-  black: { share: 0.23, meanHeight: { male: 69.3, female: 64.0 } },
+  black: {
+    share: 0.23,
+    meanHeight: { male: 69.3, female: 64.0 },
+    nativity: { immigrant: 0.32, secondGen: 0.08, thirdGen: 0.6 },
+  },
   // India 165 / 152 cm, Pakistan 165.8 / 153.9 cm, blended with NHANES Asian.
-  desi: { share: 0.25, meanHeight: { male: 66.0, female: 60.7 } },
+  desi: {
+    share: 0.25,
+    meanHeight: { male: 66.0, female: 60.7 },
+    nativity: { immigrant: 0.72, secondGen: 0.25, thirdGen: 0.03 },
+  },
   // Mostly foreign-born: Iran 170.3 / 157.2 cm, Afghanistan 168.2 / 155.3 cm, plus
   // taller Balkan and Turkish Muslims; about one-third converts at NHANES white height.
-  white: { share: 0.17, meanHeight: { male: 68.2, female: 62.8 } },
-  // Mostly Hispanic: NHANES Hispanic.
-  other: { share: 0.12, meanHeight: { male: 67.1, female: 62.0 } },
+  white: {
+    share: 0.17,
+    meanHeight: { male: 68.2, female: 62.8 },
+    nativity: { immigrant: 0.6, secondGen: 0.12, thirdGen: 0.28 },
+  },
+  // Mostly Hispanic: NHANES Hispanic. Many Hispanic Muslims are US-born converts.
+  other: {
+    share: 0.12,
+    meanHeight: { male: 67.1, female: 62.0 },
+    nativity: { immigrant: 0.4, secondGen: 0.15, thirdGen: 0.45 },
+  },
 }
 
 function band(

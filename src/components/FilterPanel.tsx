@@ -1,6 +1,18 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
+import type { Nativity } from '../data/background'
 import { AGE_MAX, AGE_MIN, HEIGHT_MAX, HEIGHT_MIN, type Ethnicity } from '../data/population'
-import { DEFAULT_FILTERS, INCOME_STEPS, type Filters, type MaritalStatus, type SexFilter } from '../lib/filters'
+import type { Sect } from '../data/religion'
+import {
+  countActiveAdvanced,
+  DEFAULT_FILTERS,
+  EDUCATION_STEPS,
+  INCOME_STEPS,
+  type ConvertFilter,
+  type Filters,
+  type MaritalStatus,
+  type MinEducation,
+  type SexFilter,
+} from '../lib/filters'
 import { formatHeight, formatHeightRange, formatIncome } from '../lib/format'
 
 interface Option<T> {
@@ -30,6 +42,33 @@ const MARITAL_OPTIONS: Option<MaritalStatus>[] = [
   { value: 'married', label: 'Married' },
 ]
 
+const SECT_OPTIONS: Option<Sect>[] = [
+  { value: 'sunni', label: 'Sunni' },
+  { value: 'shia', label: 'Shia' },
+  { value: 'justMuslim', label: 'Just Muslim' },
+  { value: 'other', label: 'Other' },
+]
+
+const NATIVITY_OPTIONS: Option<Nativity>[] = [
+  { value: 'immigrant', label: 'Immigrant' },
+  { value: 'secondGen', label: '2nd gen' },
+  { value: 'thirdGen', label: '3rd gen+' },
+]
+
+const CONVERT_OPTIONS: Option<ConvertFilter>[] = [
+  { value: 'any', label: 'Any' },
+  { value: 'bornMuslim', label: 'Born Muslim' },
+  { value: 'convert', label: 'Convert' },
+]
+
+const EDUCATION_LABELS: Record<MinEducation, string> = {
+  any: 'Any',
+  highSchool: 'High school+',
+  someCollege: 'Some college+',
+  bachelors: "Bachelor's+",
+  graduate: 'Grad degree',
+}
+
 function toggle<T>(list: T[], item: T): T[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 }
@@ -40,36 +79,22 @@ interface Props {
 }
 
 export function FilterPanel({ filters, onChange }: Props) {
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const update = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
+  const activeAdvanced = countActiveAdvanced(filters)
 
   return (
     <aside className="panel">
-      <div className="field">
-        <h2 className="field-label">Looking for</h2>
-        <div className="segmented" role="radiogroup" aria-label="Looking for">
-          {SEX_OPTIONS.map((option) => (
-            <button
-              key={option.value}
-              type="button"
-              role="radio"
-              aria-checked={filters.sex === option.value}
-              className={filters.sex === option.value ? 'is-active' : undefined}
-              onClick={() => update({ sex: option.value })}
-            >
-              {option.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <Field label="Looking for">
+        <Segmented
+          label="Looking for"
+          options={SEX_OPTIONS}
+          value={filters.sex}
+          onChange={(sex) => update({ sex })}
+        />
+      </Field>
 
-      <div className="field">
-        <div className="field-head">
-          <h2 className="field-label">Age</h2>
-          <span className="field-value">
-            {filters.ageMin} – {filters.ageMax}
-            {filters.ageMax === AGE_MAX ? '+' : ''}
-          </span>
-        </div>
+      <Field label="Age" value={`${filters.ageMin} – ${filters.ageMax}${filters.ageMax === AGE_MAX ? '+' : ''}`}>
         <RangeSlider
           label="age"
           min={AGE_MIN}
@@ -78,25 +103,18 @@ export function FilterPanel({ filters, onChange }: Props) {
           high={filters.ageMax}
           onChange={(ageMin, ageMax) => update({ ageMin, ageMax })}
         />
-      </div>
+      </Field>
 
-      <div className="field">
-        <h2 className="field-label">Ethnicity</h2>
+      <Field label="Ethnicity">
         <ChipGroup
           label="Ethnicity"
           options={ETHNICITY_OPTIONS}
           selected={filters.ethnicities}
           onToggle={(ethnicity) => update({ ethnicities: toggle(filters.ethnicities, ethnicity) })}
         />
-      </div>
+      </Field>
 
-      <div className="field">
-        <div className="field-head">
-          <h2 className="field-label">Height</h2>
-          <span className="field-value">
-            {formatHeightRange(filters.heightMin, filters.heightMax, HEIGHT_MIN, HEIGHT_MAX)}
-          </span>
-        </div>
+      <Field label="Height" value={formatHeightRange(filters.heightMin, filters.heightMax, HEIGHT_MIN, HEIGHT_MAX)}>
         <RangeSlider
           label="height"
           min={HEIGHT_MIN}
@@ -106,30 +124,152 @@ export function FilterPanel({ filters, onChange }: Props) {
           formatValue={formatHeight}
           onChange={(heightMin, heightMax) => update({ heightMin, heightMax })}
         />
-      </div>
+      </Field>
 
-      <div className="field">
-        <h2 className="field-label">Marital status</h2>
+      <Field label="Marital status">
         <ChipGroup
           label="Marital status"
           options={MARITAL_OPTIONS}
           selected={filters.marital}
           onToggle={(status) => update({ marital: toggle(filters.marital, status) })}
         />
-      </div>
+      </Field>
 
-      <div className="field">
-        <div className="field-head">
-          <h2 className="field-label">Min. income</h2>
-          <span className="field-value">{formatIncome(filters.minIncome)}</span>
+      <Field label="Min. income" value={formatIncome(filters.minIncome)}>
+        <StepSlider
+          label="Minimum income"
+          steps={INCOME_STEPS}
+          value={filters.minIncome}
+          format={formatIncome}
+          onChange={(minIncome) => update({ minIncome })}
+        />
+      </Field>
+
+      <button
+        type="button"
+        className="advanced-toggle"
+        aria-expanded={advancedOpen}
+        aria-controls="advanced-filters"
+        onClick={() => setAdvancedOpen((open) => !open)}
+      >
+        Advanced filters
+        {activeAdvanced > 0 && <span className="badge">{activeAdvanced}</span>}
+        <span className="chevron" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+
+      {advancedOpen && (
+        <div className="advanced" id="advanced-filters">
+          <Field label="Deen">
+            <div className="toggles">
+              <Toggle
+                label="Prays all 5 daily"
+                checked={filters.praysFiveDaily}
+                onChange={(praysFiveDaily) => update({ praysFiveDaily })}
+              />
+              <Toggle
+                label="Goes to mosque weekly"
+                checked={filters.mosqueWeekly}
+                onChange={(mosqueWeekly) => update({ mosqueWeekly })}
+              />
+            </div>
+          </Field>
+
+          <Field label="Sect">
+            <ChipGroup
+              label="Sect"
+              options={SECT_OPTIONS}
+              selected={filters.sects}
+              onToggle={(sect) => update({ sects: toggle(filters.sects, sect) })}
+            />
+          </Field>
+
+          <Field label="Education" value={EDUCATION_LABELS[filters.minEducation]}>
+            <StepSlider
+              label="Minimum education"
+              steps={EDUCATION_STEPS}
+              value={filters.minEducation}
+              format={(level) => EDUCATION_LABELS[level]}
+              onChange={(minEducation) => update({ minEducation })}
+            />
+          </Field>
+
+          <Field label="Born in the US?">
+            <ChipGroup
+              label="Born in the US?"
+              options={NATIVITY_OPTIONS}
+              selected={filters.nativity}
+              onToggle={(nativity) => update({ nativity: toggle(filters.nativity, nativity) })}
+            />
+          </Field>
+
+          <Field label="Convert">
+            <Segmented
+              label="Convert"
+              options={CONVERT_OPTIONS}
+              value={filters.convert}
+              onChange={(convert) => update({ convert })}
+            />
+          </Field>
+
+          <p className="hint">Prayer, mosque and education filters only count adults.</p>
         </div>
-        <IncomeSlider value={filters.minIncome} onChange={(minIncome) => update({ minIncome })} />
-      </div>
+      )}
 
       <button type="button" className="reset" onClick={() => onChange(DEFAULT_FILTERS)}>
         Reset filters
       </button>
     </aside>
+  )
+}
+
+interface FieldProps {
+  label: string
+  /** Current value shown beside the label. */
+  value?: string
+  children: ReactNode
+}
+
+function Field({ label, value, children }: FieldProps) {
+  return (
+    <div className="field">
+      {value === undefined ? (
+        <h2 className="field-label">{label}</h2>
+      ) : (
+        <div className="field-head">
+          <h2 className="field-label">{label}</h2>
+          <span className="field-value">{value}</span>
+        </div>
+      )}
+      {children}
+    </div>
+  )
+}
+
+interface SegmentedProps<T> {
+  label: string
+  options: Option<T>[]
+  value: T
+  onChange: (value: T) => void
+}
+
+function Segmented<T extends string>({ label, options, value, onChange }: SegmentedProps<T>) {
+  return (
+    <div className="segmented" role="radiogroup" aria-label={label}>
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={value === option.value}
+          className={value === option.value ? 'is-active' : undefined}
+          onClick={() => onChange(option.value)}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -158,6 +298,21 @@ function ChipGroup<T extends string>({ label, options, selected, onToggle }: Chi
         )
       })}
     </div>
+  )
+}
+
+interface ToggleProps {
+  label: string
+  checked: boolean
+  onChange: (checked: boolean) => void
+}
+
+function Toggle({ label, checked, onChange }: ToggleProps) {
+  return (
+    <label className="toggle">
+      <span>{label}</span>
+      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+    </label>
   )
 }
 
@@ -204,16 +359,19 @@ function RangeSlider({ label, min, max, low, high, formatValue = String, onChang
   )
 }
 
-interface IncomeSliderProps {
-  value: number
-  onChange: (minIncome: number) => void
+interface StepSliderProps<T> {
+  label: string
+  steps: T[]
+  value: T
+  format: (value: T) => string
+  onChange: (value: T) => void
 }
 
-function IncomeSlider({ value, onChange }: IncomeSliderProps) {
-  const index = Math.max(0, INCOME_STEPS.indexOf(value))
-  const percent = `${(index / (INCOME_STEPS.length - 1)) * 100}%`
+/** A "this much or more" slider over fixed steps; the fill runs from the value to the top. */
+function StepSlider<T>({ label, steps, value, format, onChange }: StepSliderProps<T>) {
+  const index = Math.max(0, steps.indexOf(value))
+  const percent = `${(index / (steps.length - 1)) * 100}%`
 
-  // The fill runs from the chosen minimum to the top: "this much or more".
   return (
     <div className="range" style={{ '--lo': percent, '--hi': '100%' } as CSSProperties}>
       <div className="range-track" />
@@ -221,11 +379,11 @@ function IncomeSlider({ value, onChange }: IncomeSliderProps) {
       <input
         type="range"
         min={0}
-        max={INCOME_STEPS.length - 1}
+        max={steps.length - 1}
         value={index}
-        aria-label="Minimum income"
-        aria-valuetext={formatIncome(value)}
-        onChange={(e) => onChange(INCOME_STEPS[Number(e.target.value)])}
+        aria-label={label}
+        aria-valuetext={format(value)}
+        onChange={(e) => onChange(steps[Number(e.target.value)])}
       />
     </div>
   )
