@@ -28,6 +28,9 @@ const TABS: Option<FilterTab>[] = [
   { value: 'deen', label: 'Deen' },
 ]
 
+/** The Bay Area option is hidden for now; the model and tests still cover it. */
+const SHOW_REGION_FILTER = false
+
 const REGION_OPTIONS: Option<Region>[] = [
   { value: 'us', label: 'All of the US' },
   { value: 'bayArea', label: 'Bay Area' },
@@ -137,14 +140,16 @@ export function FilterPanel({ filters, onChange }: Props) {
           />
         </Field>
 
-        <Field label="Where">
-          <Segmented
-            label="Where"
-            options={REGION_OPTIONS}
-            value={filters.region}
-            onChange={(region) => update({ region })}
-          />
-        </Field>
+        {SHOW_REGION_FILTER && (
+          <Field label="Where">
+            <Segmented
+              label="Where"
+              options={REGION_OPTIONS}
+              value={filters.region}
+              onChange={(region) => update({ region })}
+            />
+          </Field>
+        )}
 
         <Field label="Age" value={`${filters.ageMin} – ${filters.ageMax}${filters.ageMax === AGE_MAX ? '+' : ''}`}>
           <RangeSlider

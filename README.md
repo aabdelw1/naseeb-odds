@@ -67,6 +67,8 @@ The model is calibrated and tested at Realistic.
 
 ## Bay Area
 
+The Bay Area option is hidden in the app for now (`SHOW_REGION_FILTER` in [`FilterPanel.tsx`](src/components/FilterPanel.tsx)). The model and tests still cover it.
+
 Choosing **Bay Area** switches to a second set of population cells. They are re-weighted to [The Bay Area Muslim Study](https://ispu.org/research-areas/the-bay-area-muslim-study/) (ISPU / One Nation Bay Area, 2013, 1,100+ respondents), keeping the national age and sex mix:
 - **Ethnicity:** South Asian 30%, Arab 23%, Afghan/White/Iranian 25%, African American 9%, other 13%.
 - **Background:** 64% immigrants; married 59%, never married 33%; Sunni 75%, just Muslim 14%.
@@ -78,7 +80,7 @@ How many Bay Area Muslims there are is uncertain. [US Religion Census 2020](http
 The Bay Area is not modeled separately for heights, prayer or conversion; those follow the national cells. White Muslims there are mostly Afghan, so they earn less than White (mostly Iranian) Muslims nationally.
 
 Filters, in three tabs:
-- **Basics:** gender, where (all of the US / Bay Area), age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
+- **Basics:** gender, age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
 - **Life:** marital status (never married / divorced, no kids / divorced with kids / widowed / married), height range, minimum education, and minimum income.
 - **Deen:** prays all 5 daily, goes to mosque weekly, sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
 
