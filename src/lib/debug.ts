@@ -1,5 +1,6 @@
 import type { EstimateLevel } from '../data/estimates'
 import { countMatching, DEFAULT_FILTERS, totalPopulation, type Filters } from './filters'
+import { formatPercent } from './format'
 
 // A snapshot of the current search for pasting into a bug report: which filters differ
 // from the defaults, and how the count narrows as each one is applied.
@@ -56,7 +57,7 @@ export function debugReport(filters: Filters, estimate: EstimateLevel): DebugRep
       filter: keys.join('/'),
       value: keys.length === 1 ? filters[keys[0]] : pick(keys, filters),
       count,
-      keptFromPrevious: previous === 0 ? '—' : `${((count / previous) * 100).toFixed(1)}%`,
+      keptFromPrevious: previous === 0 ? '—' : formatPercent(count / previous),
       countWithoutIt: countMatching({ ...filters, ...pick(keys, DEFAULT_FILTERS) }, estimate),
     }
     previous = count

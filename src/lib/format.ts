@@ -19,11 +19,9 @@ export function formatIncome(minIncome: number): string {
   return minIncome === 0 ? 'Any' : `$${minIncome / 1000}k+`
 }
 
+const percentFormat = new Intl.NumberFormat('en-US', { maximumSignificantDigits: 3 })
+
+/** A share as a percentage to three significant figures, so tiny shares still show their size. */
 export function formatPercent(fraction: number): string {
-  const pct = fraction * 100
-  if (pct === 0) return '0%'
-  if (pct >= 10) return `${pct.toFixed(0)}%`
-  if (pct >= 1) return `${pct.toFixed(1)}%`
-  if (pct >= 0.01) return `${pct.toFixed(2)}%`
-  return '<0.01%'
+  return `${percentFormat.format(fraction * 100)}%`
 }
