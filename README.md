@@ -124,13 +124,32 @@ Spreading `changed` over `DEFAULT_FILTERS` reproduces the count.
 
 ## Deploy
 
-The site deploys to GitHub Pages at https://aabdelw1.github.io/naseeb-odds/ via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:
+The site deploys to GitHub Pages at https://naseebodds.com via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:
 1. installs dependencies
 2. runs the tests
-3. builds with the `/naseeb-odds/` base path (set in `vite.config.ts`; it must match the repo name)
+3. builds the site (served from the domain root, so `vite.config.ts` sets no base path)
 4. publishes `dist`
 
-One-time setup: in the repo, go to **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions**.
+One-time setup:
+- In the repo, go to **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions**.
+- Under **Custom domain**, enter `naseebodds.com`. A custom Actions workflow doesn't need a `CNAME` file.
+- At the domain registrar (Squarespace), remove the default website records and add these:
+
+| Type | Name | Data |
+| --- | --- | --- |
+| A | @ | 185.199.108.153 |
+| A | @ | 185.199.109.153 |
+| A | @ | 185.199.110.153 |
+| A | @ | 185.199.111.153 |
+| AAAA | @ | 2606:50c0:8000::153 |
+| AAAA | @ | 2606:50c0:8001::153 |
+| AAAA | @ | 2606:50c0:8002::153 |
+| AAAA | @ | 2606:50c0:8003::153 |
+| CNAME | www | aabdelw1.github.io |
+
+- Once GitHub's DNS check passes and the certificate is issued, tick **Enforce HTTPS**.
+
+The social preview tags in `index.html` use absolute `https://naseebodds.com/` URLs; update them if the domain changes.
 
 ## Stack
 
