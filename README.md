@@ -127,7 +127,7 @@ Spreading `changed` over `DEFAULT_FILTERS` reproduces the count.
 - **Tags:** `index.html` has the title, meta description, canonical URL, Open Graph and Twitter preview tags, a web app manifest, and JSON-LD structured data (`WebApplication` and `FAQPage`).
 - **Readable content:** a plain-HTML "What is Naseeb Odds?" section with an FAQ sits below the app, so search engines can read it without running JavaScript. [`src/test/seo.test.ts`](src/test/seo.test.ts) keeps the FAQ structured data in sync with it.
 - **Crawlers:** `public/robots.txt` and `public/sitemap.xml` point them at https://naseebodds.com/.
-- **Shareable searches:** the page address holds the search (e.g. `?sex=female&age=23-28&prays=1`), and the **Share this search** button sends that link, so every share opens the same search.
+- **Shareable searches:** the page address holds the search (e.g. `?sex=female&age=23-28&prays=1`), and the gold **Share my odds** button (also in the phone count bar) sends that link, so every share opens the same search.
 - **Icons and preview card:** generated with `swift scripts/generate-icons.swift public`.
 
 To get indexed:
@@ -148,7 +148,7 @@ Anonymous usage stats go to [Umami Cloud](https://cloud.umami.is) (cookie-free, 
 | `search` | `result` (size range, e.g. `100–999`), `filters` (how many are on) | Two seconds after the search stops changing |
 | `tab` | `tab` | A filter tab is opened |
 | `reset` | none | Reset filters is clicked |
-| `share` | `method` (`share sheet` or `copied link`) | A search is shared |
+| `share` | `method` (`share sheet` or `copied link`), `placement` (`results` or `count bar`) | A search is shared |
 | `shared-link-open` | `settings` (how many are in the link) | Someone opens a shared search link |
 
 When running locally, events are logged to the console instead.

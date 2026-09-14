@@ -53,7 +53,7 @@ export default function App() {
 
   const shareText =
     activeFilters > 0
-      ? `Only ${formatCount(count)} Muslims in ${place} match my standards 😅 What are your odds?`
+      ? ` ${formatCount(count)} total for me`
       : `There are about ${formatCount(total)} Muslims in ${place}. How many match your standards?`
 
   return (
@@ -87,7 +87,7 @@ export default function App() {
                 = {formatCount(layout.unit)} {layout.unit === 1 ? 'person' : 'people'}
               </span>
             </div>
-            <ShareButton text={shareText} />
+            <ShareButton text={shareText} placement="results" nudgeKey={count} />
           </div>
 
           {count === 0 ? (
@@ -105,9 +105,10 @@ export default function App() {
       </footer>
 
       {/* On phones the results sit below the filters, so keep the count on screen. */}
-      <div className="count-bar" hidden={countVisible} aria-hidden="true">
-        <strong>{displayedCount}</strong>
-        <span>Muslims · 1 icon = {formatCount(layout.unit)}</span>
+      <div className="count-bar" hidden={countVisible}>
+        <strong aria-hidden="true">{displayedCount}</strong>
+        <span aria-hidden="true">Muslims · 1 icon = {formatCount(layout.unit)}</span>
+        <ShareButton text={shareText} placement="count bar" />
       </div>
     </div>
   )
