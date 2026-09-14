@@ -1,16 +1,21 @@
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
 import { TOTAL_POPULATION } from './data/population'
 import { countMatching, DEFAULT_FILTERS, type Filters } from './lib/filters'
 import { formatCount, formatPercent } from './lib/format'
+import { useIsVisible } from './lib/useIsVisible'
 import { useTweenedNumber } from './lib/useTweenedNumber'
 
 export default function App() {
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS)
-  const count = countMatching(filters)
-  const layout = layoutCircle(count, TOTAL_POPULATION)
-  const displayedCount = useTweenedNumber(count)
+  // The count animates every frame, so only recount when the filters change.
+  const count = useMemo(() => countMatching(filters), [filters])
+  const layout = useMemo(() => layoutCircle(count, TOTAL_POPULATION), [count])
+  const tweenedCount = useTweenedNumber(count)
+  const displayedCount = formatCount(Math.round(tweenedCount))
+  const countRef = useRef<HTMLDivElement>(null)
+  const countVisible = useIsVisible(countRef)
 
   return (
     <div className="app">
@@ -27,7 +32,9 @@ export default function App() {
         <FilterPanel filters={filters} onChange={setFilters} />
 
         <section className="results" aria-live="polite">
-          <div className="count">{formatCount(Math.round(displayedCount))}</div>
+          <div className="count" ref={countRef}>
+            {displayedCount}
+          </div>
           <div className="count-caption">
             Muslims in the US · <strong>{formatPercent(count / TOTAL_POPULATION)}</strong> of the ummah here
           </div>
@@ -48,9 +55,14 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Estimates from Pew Research Center (2017), ISPU American Muslim Poll (2025) and CDC NHANES; marital and
-        income splits approximated. Just for fun.
+        Estimates from Pew Research Center (2017), ISPU American Muslim Poll (2025), BLS and CDC NHANES. Just for fun.
       </footer>
+
+      {/* On phones the results sit below the filters, so keep the count on screen. */}
+      <div className="count-bar" hidden={countVisible} aria-hidden="true">
+        <strong>{displayedCount}</strong>
+        <span>Muslims · 1 icon = {formatCount(layout.unit)}</span>
+      </div>
     </div>
   )
 }

@@ -86,6 +86,17 @@ export const DEFAULT_FILTERS: Filters = {
   convert: 'any',
 }
 
+export function countActiveBasic(filters: Filters): number {
+  return [
+    filters.sex !== 'any',
+    filters.ageMin !== AGE_MIN || filters.ageMax !== AGE_MAX,
+    filters.ethnicities.length !== ALL_ETHNICITIES.length,
+    filters.heightMin !== HEIGHT_MIN || filters.heightMax !== HEIGHT_MAX,
+    filters.marital.length !== ALL_MARITAL_STATUSES.length,
+    filters.minIncome > 0,
+  ].filter(Boolean).length
+}
+
 export function countActiveAdvanced(filters: Filters): number {
   return [
     filters.praysFiveDaily,

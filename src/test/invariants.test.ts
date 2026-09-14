@@ -5,6 +5,8 @@ import {
   ALL_MARITAL_STATUSES,
   ALL_NATIVITIES,
   ALL_SECTS,
+  countActiveAdvanced,
+  countActiveBasic,
   countMatching,
   DEFAULT_FILTERS,
   EDUCATION_STEPS,
@@ -100,6 +102,19 @@ describe('baseline', () => {
   it('counts everyone with no filters and every adult from 18 up', () => {
     expect(Math.abs(countMatching(DEFAULT_FILTERS) - TOTAL_POPULATION)).toBeLessThanOrEqual(2)
     expect(Math.abs(countMatching(build({ ageMin: 18 })) - ADULT_POPULATION)).toBeLessThanOrEqual(2)
+  })
+
+  it('counts each changed filter on the right tab', () => {
+    const basic = ['sex', 'age', 'ethnicity', 'height', 'marital', 'income']
+    expect([countActiveBasic(DEFAULT_FILTERS), countActiveAdvanced(DEFAULT_FILTERS)]).toEqual([0, 0])
+    for (const name of NAMES) {
+      for (const patch of DIMENSIONS[name].slice(1)) {
+        const filters = build(patch)
+        expect([countActiveBasic(filters), countActiveAdvanced(filters)], JSON.stringify(patch)).toEqual(
+          basic.includes(name) ? [1, 0] : [0, 1],
+        )
+      }
+    }
   })
 
   it('matches nobody when any option group is emptied', () => {

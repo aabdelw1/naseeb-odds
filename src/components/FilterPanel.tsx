@@ -1,9 +1,10 @@
-import { useState, type CSSProperties, type ReactNode } from 'react'
+import { useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
 import type { Nativity } from '../data/background'
 import { AGE_MAX, AGE_MIN, HEIGHT_MAX, HEIGHT_MIN, type Ethnicity } from '../data/population'
 import type { Sect } from '../data/religion'
 import {
   countActiveAdvanced,
+  countActiveBasic,
   DEFAULT_FILTERS,
   EDUCATION_STEPS,
   INCOME_STEPS,
@@ -69,6 +70,8 @@ const EDUCATION_LABELS: Record<MinEducation, string> = {
   graduate: 'Grad degree',
 }
 
+type Tab = 'basic' | 'advanced'
+
 function toggle<T>(list: T[], item: T): T[] {
   return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 }
@@ -79,143 +82,166 @@ interface Props {
 }
 
 export function FilterPanel({ filters, onChange }: Props) {
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [tab, setTab] = useState<Tab>('basic')
   const update = (patch: Partial<Filters>) => onChange({ ...filters, ...patch })
-  const activeAdvanced = countActiveAdvanced(filters)
+
+  const tabs: { id: Tab; label: string; active: number }[] = [
+    { id: 'basic', label: 'Basic', active: countActiveBasic(filters) },
+    { id: 'advanced', label: 'Advanced', active: countActiveAdvanced(filters) },
+  ]
+
+  // Arrow keys move between tabs, per the ARIA tabs pattern.
+  const onTabKeyDown = (e: KeyboardEvent) => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+    const next = tab === 'basic' ? 'advanced' : 'basic'
+    setTab(next)
+    document.getElementById(`tab-${next}`)?.focus()
+  }
 
   return (
     <aside className="panel">
-      <Field label="Looking for">
-        <Segmented
-          label="Looking for"
-          options={SEX_OPTIONS}
-          value={filters.sex}
-          onChange={(sex) => update({ sex })}
-        />
-      </Field>
+      <div className="tabs" role="tablist" aria-label="Filters" onKeyDown={onTabKeyDown}>
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            role="tab"
+            id={`tab-${t.id}`}
+            aria-selected={tab === t.id}
+            aria-controls={`panel-${t.id}`}
+            tabIndex={tab === t.id ? 0 : -1}
+            className="tab"
+            onClick={() => setTab(t.id)}
+          >
+            {t.label}
+            {t.active > 0 && <span className="badge">{t.active}</span>}
+          </button>
+        ))}
+      </div>
 
-      <Field label="Age" value={`${filters.ageMin} – ${filters.ageMax}${filters.ageMax === AGE_MAX ? '+' : ''}`}>
-        <RangeSlider
-          label="age"
-          min={AGE_MIN}
-          max={AGE_MAX}
-          low={filters.ageMin}
-          high={filters.ageMax}
-          onChange={(ageMin, ageMax) => update({ ageMin, ageMax })}
-        />
-      </Field>
+      <div className="tab-panel" role="tabpanel" id="panel-basic" aria-labelledby="tab-basic" hidden={tab !== 'basic'}>
+        <Field label="Looking for">
+          <Segmented
+            label="Looking for"
+            options={SEX_OPTIONS}
+            value={filters.sex}
+            onChange={(sex) => update({ sex })}
+          />
+        </Field>
 
-      <Field label="Ethnicity">
-        <ChipGroup
-          label="Ethnicity"
-          options={ETHNICITY_OPTIONS}
-          selected={filters.ethnicities}
-          onToggle={(ethnicity) => update({ ethnicities: toggle(filters.ethnicities, ethnicity) })}
-        />
-      </Field>
+        <Field label="Age" value={`${filters.ageMin} – ${filters.ageMax}${filters.ageMax === AGE_MAX ? '+' : ''}`}>
+          <RangeSlider
+            label="age"
+            min={AGE_MIN}
+            max={AGE_MAX}
+            low={filters.ageMin}
+            high={filters.ageMax}
+            onChange={(ageMin, ageMax) => update({ ageMin, ageMax })}
+          />
+        </Field>
 
-      <Field label="Height" value={formatHeightRange(filters.heightMin, filters.heightMax, HEIGHT_MIN, HEIGHT_MAX)}>
-        <RangeSlider
-          label="height"
-          min={HEIGHT_MIN}
-          max={HEIGHT_MAX}
-          low={filters.heightMin}
-          high={filters.heightMax}
-          formatValue={formatHeight}
-          onChange={(heightMin, heightMax) => update({ heightMin, heightMax })}
-        />
-      </Field>
+        <Field label="Ethnicity">
+          <ChipGroup
+            label="Ethnicity"
+            options={ETHNICITY_OPTIONS}
+            selected={filters.ethnicities}
+            onToggle={(ethnicity) => update({ ethnicities: toggle(filters.ethnicities, ethnicity) })}
+          />
+        </Field>
 
-      <Field label="Marital status">
-        <ChipGroup
-          label="Marital status"
-          options={MARITAL_OPTIONS}
-          selected={filters.marital}
-          onToggle={(status) => update({ marital: toggle(filters.marital, status) })}
-        />
-      </Field>
+        <Field label="Height" value={formatHeightRange(filters.heightMin, filters.heightMax, HEIGHT_MIN, HEIGHT_MAX)}>
+          <RangeSlider
+            label="height"
+            min={HEIGHT_MIN}
+            max={HEIGHT_MAX}
+            low={filters.heightMin}
+            high={filters.heightMax}
+            formatValue={formatHeight}
+            onChange={(heightMin, heightMax) => update({ heightMin, heightMax })}
+          />
+        </Field>
 
-      <Field label="Min. income" value={formatIncome(filters.minIncome)}>
-        <StepSlider
-          label="Minimum income"
-          steps={INCOME_STEPS}
-          value={filters.minIncome}
-          format={formatIncome}
-          onChange={(minIncome) => update({ minIncome })}
-        />
-      </Field>
+        <Field label="Marital status">
+          <ChipGroup
+            label="Marital status"
+            options={MARITAL_OPTIONS}
+            selected={filters.marital}
+            onToggle={(status) => update({ marital: toggle(filters.marital, status) })}
+          />
+        </Field>
 
-      <button
-        type="button"
-        className="advanced-toggle"
-        aria-expanded={advancedOpen}
-        aria-controls="advanced-filters"
-        onClick={() => setAdvancedOpen((open) => !open)}
+        <Field label="Min. income" value={formatIncome(filters.minIncome)}>
+          <StepSlider
+            label="Minimum income"
+            steps={INCOME_STEPS}
+            value={filters.minIncome}
+            format={formatIncome}
+            onChange={(minIncome) => update({ minIncome })}
+          />
+        </Field>
+      </div>
+
+      <div
+        className="tab-panel"
+        role="tabpanel"
+        id="panel-advanced"
+        aria-labelledby="tab-advanced"
+        hidden={tab !== 'advanced'}
       >
-        Advanced filters
-        {activeAdvanced > 0 && <span className="badge">{activeAdvanced}</span>}
-        <span className="chevron" aria-hidden="true">
-          ▾
-        </span>
-      </button>
-
-      {advancedOpen && (
-        <div className="advanced" id="advanced-filters">
-          <Field label="Deen">
-            <div className="toggles">
-              <Toggle
-                label="Prays all 5 daily"
-                checked={filters.praysFiveDaily}
-                onChange={(praysFiveDaily) => update({ praysFiveDaily })}
-              />
-              <Toggle
-                label="Goes to mosque weekly"
-                checked={filters.mosqueWeekly}
-                onChange={(mosqueWeekly) => update({ mosqueWeekly })}
-              />
-            </div>
-          </Field>
-
-          <Field label="Sect">
-            <ChipGroup
-              label="Sect"
-              options={SECT_OPTIONS}
-              selected={filters.sects}
-              onToggle={(sect) => update({ sects: toggle(filters.sects, sect) })}
+        <Field label="Deen">
+          <div className="toggles">
+            <Toggle
+              label="Prays all 5 daily"
+              checked={filters.praysFiveDaily}
+              onChange={(praysFiveDaily) => update({ praysFiveDaily })}
             />
-          </Field>
-
-          <Field label="Education" value={EDUCATION_LABELS[filters.minEducation]}>
-            <StepSlider
-              label="Minimum education"
-              steps={EDUCATION_STEPS}
-              value={filters.minEducation}
-              format={(level) => EDUCATION_LABELS[level]}
-              onChange={(minEducation) => update({ minEducation })}
+            <Toggle
+              label="Goes to mosque weekly"
+              checked={filters.mosqueWeekly}
+              onChange={(mosqueWeekly) => update({ mosqueWeekly })}
             />
-          </Field>
+          </div>
+        </Field>
 
-          <Field label="Born in the US?">
-            <ChipGroup
-              label="Born in the US?"
-              options={NATIVITY_OPTIONS}
-              selected={filters.nativity}
-              onToggle={(nativity) => update({ nativity: toggle(filters.nativity, nativity) })}
-            />
-          </Field>
+        <Field label="Sect">
+          <ChipGroup
+            label="Sect"
+            options={SECT_OPTIONS}
+            selected={filters.sects}
+            onToggle={(sect) => update({ sects: toggle(filters.sects, sect) })}
+          />
+        </Field>
 
-          <Field label="Convert">
-            <Segmented
-              label="Convert"
-              options={CONVERT_OPTIONS}
-              value={filters.convert}
-              onChange={(convert) => update({ convert })}
-            />
-          </Field>
+        <Field label="Education" value={EDUCATION_LABELS[filters.minEducation]}>
+          <StepSlider
+            label="Minimum education"
+            steps={EDUCATION_STEPS}
+            value={filters.minEducation}
+            format={(level) => EDUCATION_LABELS[level]}
+            onChange={(minEducation) => update({ minEducation })}
+          />
+        </Field>
 
-          <p className="hint">Prayer, mosque and education filters only count adults.</p>
-        </div>
-      )}
+        <Field label="Born in the US?">
+          <ChipGroup
+            label="Born in the US?"
+            options={NATIVITY_OPTIONS}
+            selected={filters.nativity}
+            onToggle={(nativity) => update({ nativity: toggle(filters.nativity, nativity) })}
+          />
+        </Field>
+
+        <Field label="Convert">
+          <Segmented
+            label="Convert"
+            options={CONVERT_OPTIONS}
+            value={filters.convert}
+            onChange={(convert) => update({ convert })}
+          />
+        </Field>
+
+        <p className="hint">Prayer, mosque and education filters only count adults.</p>
+      </div>
 
       <button type="button" className="reset" onClick={() => onChange(DEFAULT_FILTERS)}>
         Reset filters

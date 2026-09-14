@@ -162,31 +162,40 @@ body {
   color: var(--text);
 }
 
-.advanced-toggle {
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--bg);
+}
+
+.tab {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  width: 100%;
-  padding: 18px 0 0;
-  border: 0;
-  border-top: 1px solid var(--panel-border);
-  background: none;
-  color: var(--text);
+  padding: 9px 4px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
   font: inherit;
   font-size: 0.9rem;
   font-weight: 600;
-  text-align: left;
   cursor: pointer;
+  transition: background 150ms, color 150ms;
 }
 
-.advanced-toggle .chevron {
-  margin-left: auto;
-  color: var(--muted);
-  transition: transform 150ms;
+.tab:hover {
+  color: var(--text);
 }
 
-.advanced-toggle[aria-expanded='true'] .chevron {
-  transform: rotate(180deg);
+.tab[aria-selected='true'] {
+  border-color: var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
 }
 
 .badge {
@@ -199,10 +208,14 @@ body {
   text-align: center;
 }
 
-.advanced {
+.tab-panel {
   display: flex;
   flex-direction: column;
   gap: 28px;
+}
+
+.tab-panel[hidden] {
+  display: none;
 }
 
 .toggles {
@@ -433,6 +446,65 @@ body {
   text-align: center;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+@media (min-width: 761px) {
+  /* Keep the count and circle in view while scrolling the filters. */
+  .results {
+    position: sticky;
+    top: 16px;
+  }
+
+  /*
+   * Size the circle so the whole results column fits beside the filters even when
+   * scrolled to the bottom (count, legend and the footer below take ~320px).
+   */
+  .people-circle {
+    max-width: max(260px, min(560px, calc(100vh - 320px)));
+  }
+}
+
+.count-bar {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .app {
+    padding-bottom: 88px;
+  }
+
+  /* On phones the results sit below the filters; keep the count in view. */
+  .count-bar {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    z-index: 10;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--panel-border);
+    border-radius: 999px;
+    background: var(--panel);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    transform: translateX(-50%);
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .count-bar strong {
+    color: var(--gold);
+    font-size: 1.1rem;
+  }
+
+  .count-bar span {
+    color: var(--muted);
+    font-size: 0.85rem;
+  }
+}
+
+.count-bar[hidden] {
+  display: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
