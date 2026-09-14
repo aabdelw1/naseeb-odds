@@ -3,6 +3,7 @@ import {
   birthplaceOf,
   CHILD_NATIVITY,
   DEGREE_AGE_FACTOR,
+  DEGREE_RATE_BY_AGE_SEX,
   EDUCATION_BY_BIRTHPLACE,
   EDUCATION_LEVELS,
   MARITAL_BY_BIRTHPLACE,
@@ -263,6 +264,7 @@ function calibrateWeights(adults: Cell[]): void {
   const birthplaceMarital: Record<string, number> = {}
   const birthplaceEducation: Record<string, number> = {}
   let highSchoolOrLess = 0
+  let degreeShare = 0
   for (const birthplace of BIRTHPLACES) {
     for (const [status, share] of Object.entries(MARITAL_BY_BIRTHPLACE[birthplace])) {
       birthplaceMarital[`${birthplace}|${status}`] = birthplaceShare[birthplace] * share
@@ -272,6 +274,7 @@ function calibrateWeights(adults: Cell[]): void {
       birthplaceEducation[`${birthplace}|${level}`] = birthplaceShare[birthplace] * education[level]
     }
     highSchoolOrLess += birthplaceShare[birthplace] * (education.lessThanHighSchool + education.highSchool)
+    degreeShare += birthplaceShare[birthplace] * (education.bachelors + education.graduate)
   }
 
   // ISPU reports how often each group stops at high school. Keep those gaps (as odds
@@ -305,6 +308,27 @@ function calibrateWeights(adults: Cell[]): void {
   ])
   const ageBirthplace = Object.fromEntries(agePairs.map((p, i) => [`${p.bracket}|${p.birthplace}`, agePairWeights[i]]))
 
+  // Degrees by age and sex follow the general US pattern (young women well ahead of young
+  // men, older adults less likely to hold one), shifted to Pew's overall rate for Muslims.
+  const adultTotal = adultBands.reduce((sum, b) => sum + b.count, 0)
+  const sexAgeWeights: Record<string, number> = {}
+  const sexAgeRates: Record<string, number> = {}
+  for (const b of adultBands) {
+    const bracket = ageBracket(DEGREE_RATE_BY_AGE_SEX, b.min)
+    const row = DEGREE_RATE_BY_AGE_SEX.find((r) => r.minAge === bracket)!
+    for (const sex of SEXES) {
+      const key = `${sex}|${bracket}`
+      sexAgeWeights[key] = (sexAgeWeights[key] ?? 0) + (b.count * ADULT_SEX_SHARE[sex]) / adultTotal
+      sexAgeRates[key] = row[sex]
+    }
+  }
+  const degreeRates = shiftToAverage(sexAgeRates, sexAgeWeights, degreeShare)
+  const sexAgeDegree: Record<string, number> = {}
+  for (const [key, weight] of Object.entries(sexAgeWeights)) {
+    sexAgeDegree[`${key}|degree`] = weight * degreeRates[key]
+    sexAgeDegree[`${key}|noDegree`] = weight * (1 - degreeRates[key])
+  }
+
   const margins: Margin<Cell>[] = [
     { group: (c) => String(c.band.min), targets: Object.fromEntries(adultBands.map((b) => [String(b.min), b.count])) },
     { group: (c) => c.sex, targets: ADULT_SEX_SHARE },
@@ -317,20 +341,26 @@ function calibrateWeights(adults: Cell[]): void {
       group: (c) => `${c.ethnicity}|${highSchoolGroup(c)}`,
       targets: ethnicityEducationTargets(ethnicityShares, highSchoolRates),
     },
+    {
+      group: (c) =>
+        `${c.sex}|${ageBracket(DEGREE_RATE_BY_AGE_SEX, c.band.min)}|${c.educationRank >= BACHELORS_RANK ? 'degree' : 'noDegree'}`,
+      targets: sexAgeDegree,
+    },
   ]
   rakeWeights(adults, weights, margins, 1000, 1e-8)
   adults.forEach((cell, i) => (cell.weight = weights[i]))
 }
 
 /** Shifts every group's rate by the same log-odds so the share-weighted average hits `average`. */
-function shiftToAverage(
-  rates: Record<Ethnicity, number>,
-  shares: Record<Ethnicity, number>,
+function shiftToAverage<K extends string>(
+  rates: Record<K, number>,
+  shares: Record<K, number>,
   average: number,
-): Record<Ethnicity, number> {
+): Record<K, number> {
+  const keys = Object.keys(rates) as K[]
   const shifted = (shift: number) =>
-    Object.fromEntries(ETHNICITIES.map((e) => [e, sigmoid(logit(rates[e]) + shift)])) as Record<Ethnicity, number>
-  const mean = (r: Record<Ethnicity, number>) => ETHNICITIES.reduce((sum, e) => sum + shares[e] * r[e], 0)
+    Object.fromEntries(keys.map((k) => [k, sigmoid(logit(rates[k]) + shift)])) as Record<K, number>
+  const mean = (r: Record<K, number>) => keys.reduce((sum, k) => sum + shares[k] * r[k], 0)
   let lo = -10
   let hi = 10
   for (let i = 0; i < 60; i++) {

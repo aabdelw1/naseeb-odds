@@ -23,7 +23,8 @@ export const PART_TIME_ADJUSTMENT = { median: 0.9, sigma: 0.15 }
 /** Approximated earnings by age relative to peak years. Youngest first; later ages use `otherwise`. */
 export const EARNINGS_AGE_PROFILE = {
   brackets: [
-    { belowAge: 25, factor: 0.55 },
+    { belowAge: 22, factor: 0.45 },
+    { belowAge: 25, factor: 0.65 },
     { belowAge: 30, factor: 0.8 },
     { belowAge: 35, factor: 0.92 },
     { belowAge: 55, factor: 1 },

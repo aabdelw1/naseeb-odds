@@ -50,7 +50,7 @@ describe('income and education go together', () => {
 
   it('$250k+ earners are mostly degree holders, unlike adults overall', () => {
     const degreeOverall = share({ minEducation: 'bachelors' })
-    expect(share({ minEducation: 'bachelors' }, { minIncome: 250_000 })).toBeGreaterThan(Math.min(0.9, degreeOverall * 2))
+    expect(share({ minEducation: 'bachelors' }, { minIncome: 250_000 })).toBeGreaterThan(Math.max(0.8, degreeOverall * 1.5))
     const noDiplomaOverall = 1 - share({ minEducation: 'highSchool' })
     const noDiplomaRich = 1 - share({ minEducation: 'highSchool' }, { minIncome: 250_000 })
     expect(noDiplomaRich).toBeLessThan(noDiplomaOverall / 3)
@@ -58,7 +58,7 @@ describe('income and education go together', () => {
 
   it('a degree and $250k+ together are far likelier than multiplying their shares suggests', () => {
     const product = share({ minEducation: 'bachelors' }) * share({ minIncome: 250_000 })
-    expect(share({ minEducation: 'bachelors', minIncome: 250_000 })).toBeGreaterThan(product * 2)
+    expect(share({ minEducation: 'bachelors', minIncome: 250_000 })).toBeGreaterThan(product * 1.8)
   })
 })
 
@@ -101,6 +101,35 @@ describe('education differs by background and age', () => {
     const black = share({ minEducation: 'bachelors' }, { ethnicities: ['black'] })
     expect(share({ minEducation: 'bachelors' }, { ethnicities: ['desi'] })).toBeGreaterThan(black)
     expect(share({ minEducation: 'bachelors' }, { ethnicities: ['arab'] })).toBeGreaterThan(black)
+  })
+
+  it('women under 40 hold degrees more often than men, and men 55 and older more often than women', () => {
+    for (const [ageMin, ageMax] of [
+      [25, 29],
+      [30, 39],
+    ]) {
+      expect(share({ minEducation: 'bachelors' }, { ageMin, ageMax, sex: 'female' })).toBeGreaterThan(
+        share({ minEducation: 'bachelors' }, { ageMin, ageMax, sex: 'male' }),
+      )
+    }
+    expect(share({ minEducation: 'bachelors' }, { ageMin: 55, ageMax: 90, sex: 'male' })).toBeGreaterThan(
+      share({ minEducation: 'bachelors' }, { ageMin: 55, ageMax: 90, sex: 'female' }),
+    )
+  })
+
+  it('23- and 24-year-olds hold far more degrees than 18- to 21-year-olds', () => {
+    expect(share({ minEducation: 'bachelors' }, { ageMin: 22, ageMax: 24 })).toBeGreaterThan(
+      share({ minEducation: 'bachelors' }, { ageMin: 18, ageMax: 21 }) * 4,
+    )
+  })
+
+  it("US-born Arab women in their late 20s hold degrees at about the rate of young US women and Arab Americans (45%)", () => {
+    const rate = share(
+      { minEducation: 'bachelors' },
+      { sex: 'female', ageMin: 25, ageMax: 29, ethnicities: ['arab'], nativity: ['secondGen', 'thirdGen'] },
+    )
+    expect(rate, pct(rate)).toBeGreaterThan(0.35)
+    expect(rate, pct(rate)).toBeLessThan(0.65)
   })
 
   it('almost nobody under 25 has a graduate degree', () => {
@@ -240,10 +269,10 @@ describe('the Bay Area', () => {
     }
   })
 
-  it("has about twice the national share with bachelor's degrees", () => {
+  it("has a clearly higher share with bachelor's degrees than Muslims nationally", () => {
     const ratio = share({ minEducation: 'bachelors' }, BAY) / share({ minEducation: 'bachelors' })
-    expect(ratio).toBeGreaterThan(1.6)
-    expect(ratio).toBeLessThan(2.4)
+    expect(ratio).toBeGreaterThan(1.15)
+    expect(ratio).toBeLessThan(2)
   })
 
   it('ranks $100k+ earners with Desi Muslims first and Black Muslims last', () => {

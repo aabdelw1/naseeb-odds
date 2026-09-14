@@ -39,10 +39,46 @@ export const RACE_BY_GENERATION: Record<'black' | 'white', Record<Nativity, numb
   white: { immigrant: 0.45, secondGen: 0.52, thirdGen: 0.23 },
 }
 
-/** Highest degree among adults (US-born row rounded so it sums to 1). */
-export const EDUCATION_BY_BIRTHPLACE: Record<Birthplace, Record<EducationLevel, number>> = {
+/** Pew 2017: highest degree among adults (US-born row rounded so it sums to 1). */
+const PEW_2017_EDUCATION_BY_BIRTHPLACE: Record<Birthplace, Record<EducationLevel, number>> = {
   immigrant: { lessThanHighSchool: 0.1, highSchool: 0.27, someCollege: 0.25, bachelors: 0.23, graduate: 0.15 },
   usBorn: { lessThanHighSchool: 0.07, highSchool: 0.36, someCollege: 0.36, bachelors: 0.16, graduate: 0.05 },
+}
+
+/**
+ * Pew's 2023–24 Religious Landscape Study: 44% of Muslim adults are college graduates,
+ * including 26% with a postgraduate degree (Pew 2017: 31% and 11%). Another 30% are
+ * current students without a degree.
+ */
+export const MUSLIM_DEGREES_2024 = { bachelorsOrMore: 0.44, graduate: 0.26 }
+
+/**
+ * Highest degree among adults by birthplace. The 2023–24 study doesn't split by birthplace,
+ * so this takes Pew 2017's split, scales bachelor's and graduate degrees up to the 2023–24
+ * totals, and scales the other levels down to match, keeping the immigrant / US-born gap.
+ */
+export const EDUCATION_BY_BIRTHPLACE = updateToCurrentDegrees(PEW_2017_EDUCATION_BY_BIRTHPLACE)
+
+function updateToCurrentDegrees(
+  old: Record<Birthplace, Record<EducationLevel, number>>,
+): Record<Birthplace, Record<EducationLevel, number>> {
+  const overall = (level: EducationLevel) =>
+    NATIVITY_SHARES.immigrant * old.immigrant[level] + (1 - NATIVITY_SHARES.immigrant) * old.usBorn[level]
+  const graduateFactor = MUSLIM_DEGREES_2024.graduate / overall('graduate')
+  const bachelorsFactor = (MUSLIM_DEGREES_2024.bachelorsOrMore - MUSLIM_DEGREES_2024.graduate) / overall('bachelors')
+  const update = (row: Record<EducationLevel, number>): Record<EducationLevel, number> => {
+    const graduate = row.graduate * graduateFactor
+    const bachelors = row.bachelors * bachelorsFactor
+    const rest = (1 - graduate - bachelors) / (row.lessThanHighSchool + row.highSchool + row.someCollege)
+    return {
+      lessThanHighSchool: row.lessThanHighSchool * rest,
+      highSchool: row.highSchool * rest,
+      someCollege: row.someCollege * rest,
+      bachelors,
+      graduate,
+    }
+  }
+  return { immigrant: update(old.immigrant), usBorn: update(old.usBorn) }
 }
 
 export type MaritalGroup = 'neverMarried' | 'married' | 'divorced' | 'widowed'
@@ -62,11 +98,32 @@ export const MARRIED_SHARE = 0.53
 
 /**
  * Approximated: young adults are still finishing school, so only this share of people who
- * will hold a degree have one yet. Youngest bracket first; older adults use a factor of 1.
+ * will hold a degree have one yet. Seeds the model before calibration. Youngest bracket
+ * first; older adults use a factor of 1.
  */
 export const DEGREE_AGE_FACTOR = [
-  { belowAge: 25, bachelors: 0.35, graduate: 0.1 },
+  { belowAge: 22, bachelors: 0.05, graduate: 0 },
+  { belowAge: 25, bachelors: 0.7, graduate: 0.1 },
   { belowAge: 30, bachelors: 1, graduate: 0.6 },
+]
+
+/**
+ * Bachelor's degree or higher by age and sex in the general US population. The model keeps
+ * these gaps (as odds ratios) and shifts them to Pew's overall rate for Muslims.
+ * - Census CPS 2024 (table 1): ages 18–24 men 10.9%, women 15.9%; ages 25–29 men 34.9%,
+ *   women 45.5% (NCES 2023 agrees: 35.9% / 45.2%).
+ * - Census 2024: ages 25–39 42.8%, 40–54 41.5%, 55+ 34.2%; all adults 25+ women 40.1%,
+ *   men 37.1%. Splits by sex beyond age 29 are approximated from those.
+ * - Ages 18–24 are split assuming 18–21 have almost no degrees yet, which puts 22–24 at
+ *   about 24% (men) and 34% (women).
+ */
+export const DEGREE_RATE_BY_AGE_SEX: { minAge: number; male: number; female: number }[] = [
+  { minAge: 18, male: 0.01, female: 0.02 },
+  { minAge: 22, male: 0.24, female: 0.34 },
+  { minAge: 25, male: 0.349, female: 0.455 },
+  { minAge: 30, male: 0.39, female: 0.47 },
+  { minAge: 40, male: 0.395, female: 0.435 },
+  { minAge: 55, male: 0.36, female: 0.325 },
 ]
 
 /** Approximated generation mix for children: most children of immigrants are US-born. */

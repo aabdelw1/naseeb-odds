@@ -31,7 +31,8 @@ Researched:
   - Prays all 5 daily: 42% overall, 39% of men, 45% of women, rising from 33% at 18–29 to 53% at 55+.
   - Mosque weekly: 43% overall, 48% of men, 37% of women (Sunni 50%, Shia 17%).
   - Sect: Sunni 55%, Shia 16%, just Muslim 14%.
-  - Education by birthplace: 38% of immigrants and 21% of US-born have a college degree or more.
+  - Education by birthplace: 38% of immigrants and 21% of US-born have a college degree or more. The model scales these up to [Pew's 2023–24 figures](https://www.pewresearch.org/short-reads/2025/06/18/how-us-muslims-compare-with-other-americans-religiously-and-demographically/) (44% college graduates, 26% postgraduate), keeping the gap between immigrants and US-born.
+  - Degrees by age and sex follow the general US pattern ([Census CPS 2024](https://www.census.gov/data/tables/2024/demo/educational-attainment/cps-detailed-tables.html), [NCES](https://nces.ed.gov/programs/digest/d23/tables/dt23_104.20.asp)). For example, ages 25–29: women 45.5%, men 34.9%.
   - Generation: immigrant 58%, 2nd gen 18%, 3rd gen+ 24%. Converts: 23%.
   - By birthplace: immigrants are older and 70% married, while US-born adults are 45% under 30 and 29% married.
   - Prayer and mosque rates by sex, age, degree, birthplace, marriage, sect and origin.
