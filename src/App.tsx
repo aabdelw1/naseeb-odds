@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { DEBUG_ENABLED, DebugButton } from './components/DebugButton'
 import { EstimateSwitch } from './components/EstimateSwitch'
 import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
@@ -64,6 +65,7 @@ export default function App() {
       <footer className="footer">
         Estimates from Pew Research Center, ISPU American Muslim Poll (2025), US Religion Census (2020), BLS and CDC
         NHANES. Just for fun.
+        {DEBUG_ENABLED && <DebugButton filters={filters} estimate={estimate} />}
       </footer>
 
       {/* On phones the results sit below the filters, so keep the count on screen. */}

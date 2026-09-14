@@ -112,6 +112,15 @@ npx vite-node scripts/funnel.ts
 
 Breaks one search down step by step. For each filter it shows the share of people it keeps and what the final count would be without it, at every estimate level. Edit the steps at the top of the script to try your own search.
 
+## Debugging
+
+When running locally, or on the deployed site with `?debug` in the URL, the footer shows a **Copy debug info** button. It copies the current search as JSON (and logs it to the console):
+- the estimate level, count and total
+- only the filters that differ from the defaults
+- a step-by-step breakdown: the count after each filter, the share it kept, and the final count without it
+
+Spreading `changed` over `DEFAULT_FILTERS` reproduces the count.
+
 ## Deploy
 
 The site deploys to GitHub Pages at https://aabdelw1.github.io/ummah-odds/ via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:
