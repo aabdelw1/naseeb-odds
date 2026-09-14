@@ -1,4 +1,4 @@
-# Ummah Odds
+# Naseeb Odds
 
 A just-for-fun calculator, inspired by the "Female Delusion Calculator": start with every Muslim in the United States, apply filters, and watch the circle of people shrink.
 
@@ -124,10 +124,10 @@ Spreading `changed` over `DEFAULT_FILTERS` reproduces the count.
 
 ## Deploy
 
-The site deploys to GitHub Pages at https://aabdelw1.github.io/ummah-odds/ via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:
+The site deploys to GitHub Pages at https://aabdelw1.github.io/naseeb-odds/ via [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml). Every push to `main`:
 1. installs dependencies
 2. runs the tests
-3. builds with the `/ummah-odds/` base path (set in `vite.config.ts`)
+3. builds with the `/naseeb-odds/` base path (set in `vite.config.ts`; it must match the repo name)
 4. publishes `dist`
 
 One-time setup: in the repo, go to **Settings → Pages → Build and deployment** and set **Source** to **GitHub Actions**.

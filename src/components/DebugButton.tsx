@@ -17,7 +17,7 @@ export function DebugButton({ filters, estimate }: Props) {
 
   const copy = async () => {
     const text = JSON.stringify(debugReport(filters, estimate), null, 2)
-    console.log(`[ummah-odds debug]\n${text}`)
+    console.log(`[naseeb-odds debug]\n${text}`)
     try {
       await navigator.clipboard.writeText(text)
       setStatus('copied')

@@ -28,7 +28,7 @@ export default function App() {
 
       <header className="header">
         <h1>
-          Ummah <span>Odds</span>
+          Naseeb <span>Odds</span>
         </h1>
         <p>What are the chances of finding your match in the US?</p>
       </header>
