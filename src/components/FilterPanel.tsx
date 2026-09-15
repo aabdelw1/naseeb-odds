@@ -406,7 +406,9 @@ interface RangeSliderProps {
 
 function RangeSlider({ label, min, max, low, high, formatValue = String, onChange }: RangeSliderProps) {
   const toPercent = (value: number) => `${((value - min) / (max - min)) * 100}%`
-  // When both thumbs sit at the top, lift the low thumb so it can still be dragged down.
+  // The thumbs can sit on top of each other, so put the one that can still move on top: the
+  // high thumb in the lower half (it can be dragged up), the low thumb in the upper half (it
+  // can be dragged down). Both need a z-index; one left at "auto" would sit below the other.
   const lowOnTop = low > (min + max) / 2
 
   return (
@@ -420,7 +422,7 @@ function RangeSlider({ label, min, max, low, high, formatValue = String, onChang
         value={low}
         aria-label={`Minimum ${label}`}
         aria-valuetext={formatValue(low)}
-        style={{ zIndex: lowOnTop ? 3 : 2 }}
+        style={{ zIndex: lowOnTop ? 3 : 1 }}
         onChange={(e) => onChange(Math.min(Number(e.target.value), high), high)}
       />
       <input
@@ -430,6 +432,7 @@ function RangeSlider({ label, min, max, low, high, formatValue = String, onChang
         value={high}
         aria-label={`Maximum ${label}`}
         aria-valuetext={formatValue(high)}
+        style={{ zIndex: 2 }}
         onChange={(e) => onChange(low, Math.max(Number(e.target.value), low))}
       />
     </div>

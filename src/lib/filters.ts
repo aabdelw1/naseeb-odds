@@ -135,7 +135,8 @@ export function countMatching(filters: Filters, estimate: EstimateLevel = 'reali
     : population / US_MUSLIM_POPULATION
   const practice = (p: number) => (practiceShift === 0 ? p : sigmoid(logit(p) + practiceShift))
   const lo = filters.ageMin
-  const hi = filters.ageMax + 1
+  // The top of the slider means that age and older.
+  const hi = filters.ageMax >= AGE_MAX ? Infinity : filters.ageMax + 1
   const ethnicities = new Set(filters.ethnicities)
   const marital = new Set(filters.marital)
   const sects = new Set(filters.sects)

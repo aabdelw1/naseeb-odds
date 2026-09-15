@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ESTIMATE_LEVELS } from '../data/estimates'
-import { ADULT_POPULATION, HEIGHT_MAX, HEIGHT_MIN, TOTAL_POPULATION } from '../data/population'
+import { ADULT_POPULATION, AGE_MAX, AGE_MIN, HEIGHT_MAX, HEIGHT_MIN, TOTAL_POPULATION } from '../data/population'
 import {
   ALL_ETHNICITIES,
   ALL_MARITAL_STATUSES,
@@ -140,6 +140,15 @@ describe('baseline', () => {
         expect(countActive(build(patch)), JSON.stringify(patch)).toEqual({ ...none, [tabOf[name]]: 1 })
       }
     }
+  })
+
+  it('has people at every single age on the slider, including the top (90 and older)', () => {
+    const emptyAges: number[] = []
+    for (let age = AGE_MIN; age <= AGE_MAX; age++) {
+      if (countMatching(build({ ageMin: age, ageMax: age })) === 0) emptyAges.push(age)
+    }
+    expect(emptyAges).toEqual([])
+    expect(countMatching(build({ ageMin: 80, ageMax: AGE_MAX }))).toBeGreaterThan(countMatching(build({ ageMin: 80, ageMax: 89 })))
   })
 
   it('matches nobody when any option group is emptied', () => {

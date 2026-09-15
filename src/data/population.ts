@@ -71,7 +71,7 @@ export interface EthnicGroup {
 }
 
 export const AGE_MIN = 0
-/** The last band is really "75+"; the slider tops out here and shows "90+". */
+/** Top of the age slider, meaning 90 and older (the last age band). */
 export const AGE_MAX = 90
 export const ADULT_AGE = 18
 
@@ -227,7 +227,9 @@ export const AGE_BANDS: AgeBand[] = [
   band(60, 65, 80_000, [0.07, 0.66, 0.21, 0.06], 0.75, 0.7),
   band(65, 70, 58_000, [0.06, 0.64, 0.2, 0.1], 0.75, 0.25),
   band(70, 75, 35_000, [0.05, 0.6, 0.17, 0.18], 0.75, 0.25),
-  band(75, 90, 24_000, [0.04, 0.48, 0.12, 0.36], 0.75, 0.25),
+  band(75, 90, 21_000, [0.04, 0.48, 0.12, 0.36], 0.75, 0.25),
+  // 90 and older: the top of the age slider. Approximated, mostly widowed.
+  band(90, 95, 3_000, [0.03, 0.25, 0.08, 0.64], 0.75, 0.05),
 ]
 
 export const TOTAL_POPULATION = AGE_BANDS.reduce((sum, b) => sum + b.count, 0)
