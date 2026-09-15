@@ -16,6 +16,7 @@ import {
   type SexFilter,
 } from '../lib/filters'
 import { track } from '../lib/analytics'
+import { pickChip } from '../lib/chips'
 import { formatHeight, formatHeightRange, formatIncome } from '../lib/format'
 
 interface Option<T> {
@@ -84,10 +85,6 @@ const EDUCATION_LABELS: Record<MinEducation, string> = {
   someCollege: 'Some college+',
   bachelors: "Bachelor's+",
   graduate: 'Grad degree',
-}
-
-function toggle<T>(list: T[], item: T): T[] {
-  return list.includes(item) ? list.filter((x) => x !== item) : [...list, item]
 }
 
 interface Props {
@@ -173,7 +170,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             label="Ethnicity"
             options={ETHNICITY_OPTIONS}
             selected={filters.ethnicities}
-            onToggle={(ethnicity) => update({ ethnicities: toggle(filters.ethnicities, ethnicity) })}
+            onChange={(ethnicities) => update({ ethnicities })}
           />
         </Field>
 
@@ -182,7 +179,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             label="Born in the US?"
             options={NATIVITY_OPTIONS}
             selected={filters.nativity}
-            onToggle={(nativity) => update({ nativity: toggle(filters.nativity, nativity) })}
+            onChange={(nativity) => update({ nativity })}
           />
         </Field>
       </TabPanel>
@@ -193,7 +190,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             label="Marital status"
             options={MARITAL_OPTIONS}
             selected={filters.marital}
-            onToggle={(status) => update({ marital: toggle(filters.marital, status) })}
+            onChange={(marital) => update({ marital })}
           />
         </Field>
 
@@ -253,7 +250,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             label="Sect"
             options={SECT_OPTIONS}
             selected={filters.sects}
-            onToggle={(sect) => update({ sects: toggle(filters.sects, sect) })}
+            onChange={(sects) => update({ sects })}
           />
         </Field>
 
@@ -350,21 +347,28 @@ interface ChipGroupProps<T> {
   label: string
   options: Option<T>[]
   selected: T[]
-  onToggle: (value: T) => void
+  onChange: (selected: T[]) => void
 }
 
-function ChipGroup<T extends string>({ label, options, selected, onToggle }: ChipGroupProps<T>) {
+/** "Any" plus one chip per option: tap the options you want, or Any to clear them. */
+function ChipGroup<T extends string>({ label, options, selected, onChange }: ChipGroupProps<T>) {
+  const all = options.map((option) => option.value)
+  const isAny = all.every((value) => selected.includes(value))
+
   return (
     <div className="chips" role="group" aria-label={label}>
+      <button type="button" aria-pressed={isAny} className={isAny ? 'chip is-active' : 'chip'} onClick={() => onChange(all)}>
+        Any
+      </button>
       {options.map((option) => {
-        const active = selected.includes(option.value)
+        const active = !isAny && selected.includes(option.value)
         return (
           <button
             key={option.value}
             type="button"
             aria-pressed={active}
             className={active ? 'chip is-active' : 'chip'}
-            onClick={() => onToggle(option.value)}
+            onClick={() => onChange(pickChip(selected, all, option.value))}
           >
             {option.label}
           </button>
