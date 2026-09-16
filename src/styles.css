@@ -271,6 +271,16 @@ body {
   background: #fff;
 }
 
+/* Kept visible rather than hidden, so it's clear the option exists for sisters. */
+.toggle.is-disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.toggle.is-disabled input {
+  cursor: default;
+}
+
 .toggle input:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

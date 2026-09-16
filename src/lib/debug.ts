@@ -18,6 +18,7 @@ const FILTER_GROUPS: (keyof Filters)[][] = [
   ['minIncome'],
   ['praysFiveDaily'],
   ['mosqueWeekly'],
+  ['wearsHijab'],
   ['sects'],
   ['convert'],
 ]

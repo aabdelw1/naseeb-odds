@@ -59,10 +59,57 @@ export const MOSQUE_WEEKLY: PracticeRates = {
 }
 
 /**
- * Assumed: how strongly praying all five and weekly mosque attendance go together, from
- * 0 (unrelated) to 1 (as overlapping as the two rates allow). Pew doesn't publish it.
+ * Assumed: how strongly religious practices go together, from 0 (unrelated) to 1 (as
+ * overlapping as the rates allow). Pew doesn't publish the overlap between praying all five,
+ * weekly mosque attendance and wearing hijab.
  */
-export const PRAYER_MOSQUE_CORRELATION = 0.5
+export const PRACTICE_CORRELATION = 0.5
+
+/**
+ * Wearing a headcover in public, for women. Pew 2017: 38% always, 5% most of the time, 15%
+ * some of the time, 42% never. "Wears hijab" counts the 43% who wear it all or most of the
+ * time.
+ *
+ * Pew reports one demographic split: 44% of women without a degree always cover against 24%
+ * of college graduates. Both are carried over to the all-or-most basis (×43/38).
+ */
+export const HIJAB = {
+  overall: 0.43,
+  byDegree: { degree: 0.27, noDegree: 0.5 },
+}
+
+/**
+ * Assumed: who is more likely to cover, as log-odds nudges applied before the published rates
+ * are raked back in. They decide who wears hijab; HIJAB decides how many. Pew only publishes
+ * the overall rate and the split by degree, so everything here is an estimate of direction,
+ * sized so no single trait swings the odds by more than about 2.5x.
+ *
+ * `practiceLink` multiplies how far a cell's prayer and mosque attendance sit from the average
+ * for women. Pew's widest published split is by religiosity: 52% of women who call religion
+ * very important always cover, against 8% of those who don't, and a link of 1 spreads hijab
+ * across the model's cells by roughly that much.
+ */
+export const HIJAB_TILTS = {
+  practiceLink: 1,
+  /** Covering is most common among immigrants and fades with each generation born here. */
+  byNativity: { immigrant: 0.45, secondGen: 0, thirdGen: -0.45 } as Record<Nativity, number>,
+  /** Shia women in the US cover noticeably less often than Sunni women. */
+  bySect: { sunni: 0.25, shia: -0.55, justMuslim: -0.35, other: 0 } as Record<Sect, number>,
+  /**
+   * Converts against born Muslims of the same background. This one sits inside a cell rather
+   * than between cells, because most converts are third generation, where covering is
+   * otherwise least common. Sized so converts still come out somewhat more likely to cover,
+   * which is what people in the community describe; nobody publishes a figure for it.
+   */
+  convert: 1,
+  /** Oldest matching bracket wins. */
+  byAge: [
+    { minAge: 18, shift: -0.3 },
+    { minAge: 30, shift: 0 },
+    { minAge: 45, shift: 0.25 },
+    { minAge: 60, shift: 0.45 },
+  ],
+}
 
 /** Pew: 23% of adults are converts; two-thirds of US-born Black Muslims; one-in-seven of everyone else. */
 export const CONVERTS = { overall: 0.23, usBornBlack: 0.67, everyoneElse: 1 / 7 }

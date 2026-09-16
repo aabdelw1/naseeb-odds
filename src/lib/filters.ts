@@ -13,7 +13,7 @@ import {
   type MaritalStatus,
   type Sex,
 } from '../data/population'
-import { PRAYER_MOSQUE_CORRELATION, type Sect } from '../data/religion'
+import { PRACTICE_CORRELATION, type Sect } from '../data/religion'
 import { BAY_AREA_CELLS, CELLS, incomeShare } from './model'
 import { logit, normalCdf, sigmoid } from './stats'
 
@@ -65,6 +65,8 @@ export interface Filters {
   minIncome: number
   praysFiveDaily: boolean
   mosqueWeekly: boolean
+  /** Women only, so it matches nobody when brothers are being counted. */
+  wearsHijab: boolean
   /** Sects to include; empty matches nobody. */
   sects: Sect[]
   minEducation: MinEducation
@@ -85,6 +87,7 @@ export const DEFAULT_FILTERS: Filters = {
   minIncome: 0,
   praysFiveDaily: false,
   mosqueWeekly: false,
+  wearsHijab: false,
   sects: ALL_SECTS,
   minEducation: 'any',
   nativity: ALL_NATIVITIES,
@@ -113,6 +116,7 @@ export function countActive(filters: Filters): Record<FilterTab, number> {
     deen: active([
       filters.praysFiveDaily,
       filters.mosqueWeekly,
+      filters.wearsHijab,
       filters.sects.length !== ALL_SECTS.length,
       filters.convert !== 'any',
     ]),
@@ -144,7 +148,8 @@ export function countMatching(filters: Filters, estimate: EstimateLevel = 'reali
   const minEducationRank = filters.minEducation === 'any' ? -1 : EDUCATION_LEVELS.indexOf(filters.minEducation)
   const heights = heightShares(filters)
   // Height, prayer, mosque and education are only modelled for adults.
-  const adultsOnly = heights !== null || filters.praysFiveDaily || filters.mosqueWeekly || minEducationRank >= 0
+  const adultsOnly =
+    heights !== null || filters.praysFiveDaily || filters.mosqueWeekly || filters.wearsHijab || minEducationRank >= 0
 
   let count = 0
   for (const cell of cells) {
@@ -161,23 +166,33 @@ export function countMatching(filters: Filters, estimate: EstimateLevel = 'reali
     let share = overlap / (band.max - band.min)
     if (heights) share *= heights[cell.sex][cell.ethnicity][cell.birthplace]
     if (filters.minIncome > 0) share *= incomeShare(cell, filters.minIncome, cell.medianIncome * earningsFactor)
-    if (filters.praysFiveDaily && filters.mosqueWeekly) {
-      share *= bothPractices(practice(cell.praysFiveDaily), practice(cell.mosqueWeekly))
-    } else if (filters.praysFiveDaily) {
-      share *= practice(cell.praysFiveDaily)
-    } else if (filters.mosqueWeekly) {
-      share *= practice(cell.mosqueWeekly)
+    const practices: number[] = []
+    if (filters.praysFiveDaily) practices.push(practice(cell.praysFiveDaily))
+    if (filters.mosqueWeekly) practices.push(practice(cell.mosqueWeekly))
+    // Men and children have no hijab probability, so they drop out here. Converts and born
+    // Muslims cover at different rates within the same cell, so follow the convert filter.
+    if (filters.wearsHijab) {
+      const hijab =
+        filters.convert === 'convert'
+          ? cell.wearsHijabConvert
+          : filters.convert === 'bornMuslim'
+            ? cell.wearsHijabBornMuslim
+            : cell.wearsHijab
+      practices.push(hijab === 0 ? 0 : practice(hijab))
     }
+    if (practices.length > 0) share *= allPractices(practices)
     if (filters.convert !== 'any') share *= filters.convert === 'convert' ? cell.convert : 1 - cell.convert
     count += cell.weight * scale * share
   }
   return Math.round(count)
 }
 
-/** Probability of both practices, part way between independent and maximally overlapping. */
-function bothPractices(prays: number, mosque: number): number {
-  const independent = prays * mosque
-  return independent + PRAYER_MOSQUE_CORRELATION * (Math.min(prays, mosque) - independent)
+/** Probability of keeping every one of these practices, part way between independent and maximally overlapping. */
+function allPractices(chances: number[]): number {
+  return chances.reduce((both, chance) => {
+    const independent = both * chance
+    return independent + PRACTICE_CORRELATION * (Math.min(both, chance) - independent)
+  })
 }
 
 type HeightShares = Record<Sex, Record<Ethnicity, Record<Birthplace, number>>>

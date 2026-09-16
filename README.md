@@ -15,7 +15,7 @@ npm run dev
 
 The numbers are **estimates**, some researched and some approximated.
 
-**How the numbers combine.** [`src/lib/model.ts`](src/lib/model.ts) builds a synthetic population of US Muslims out of ~37,000 cells, one per combination of age band, sex, ethnicity, generation, education, marital status and sect. Each cell also carries its odds of praying all five, going to mosque weekly and being a convert, plus an earnings curve. The cell sizes and odds are then calibrated ("raked") until the whole population reproduces every published figure below at once. The filters add up the matching cells, so traits that go together in real life go together in the app. For example, $250k+ earners are mostly degree holders, immigrants are more often married, and converts are mostly US-born.
+**How the numbers combine.** [`src/lib/model.ts`](src/lib/model.ts) builds a synthetic population of US Muslims out of ~37,000 cells, one per combination of age band, sex, ethnicity, generation, education, marital status and sect. Each cell also carries its odds of praying all five, going to mosque weekly, wearing hijab and being a convert, plus an earnings curve. The cell sizes and odds are then calibrated ("raked") until the whole population reproduces every published figure below at once. The filters add up the matching cells, so traits that go together in real life go together in the app. For example, $250k+ earners are mostly degree holders, immigrants are more often married, and converts are mostly US-born.
 
 Researched:
 - **Total:** ~4.5M Muslims of all ages, per the [US Religion Census 2020](https://www.usreligioncensus.org/node/1641). This is consistent with [Pew's 2023–24 finding](https://www.pewresearch.org/religious-landscape-study/religious-tradition/muslim/) that about 1% of US adults are Muslim. The age mix follows [Pew 2017](https://www.pewresearch.org/religion/2017/07/26/demographic-portrait-of-muslim-americans/).
@@ -36,6 +36,7 @@ Researched:
   - Generation: immigrant 58%, 2nd gen 18%, 3rd gen+ 24%. Converts: 23%.
   - By birthplace: immigrants are older and 70% married, while US-born adults are 45% under 30 and 29% married.
   - Prayer and mosque rates by sex, age, degree, birthplace, marriage, sect and origin.
+  - Hijab: 38% of Muslim women always wear a headcover in public and 5% most of the time, so the filter counts 43%. The only split Pew gives is by education: 44% of women without a degree always cover against 24% of graduates. Muslim women hold degrees far more often now than in 2017, so those two rates no longer average to Pew's own overall rate; the model keeps the gap between them and moves both until they do.
 - **Earnings:**
   - Earnings by education: [BLS usual weekly earnings by education](https://www.bls.gov/charts/usual-weekly-earnings/usual-weekly-earnings-by-quartiles-and-selected-deciles-by-education.htm) (medians and spread). The income filter is personal earnings.
   - Employment: 60% of Muslim adults work (Pew). Degree holders are more likely to work, following [BLS employment rates by education](https://www.bls.gov/news.release/empsit.t04.htm).
@@ -49,7 +50,8 @@ Approximated:
 - converts by generation and ethnicity
 - how many young adults have finished degrees
 - earnings by age and for women
-- how strongly praying all five and weekly mosque attendance overlap
+- how strongly religious practices overlap
+- who wears hijab beyond Pew's two published rates (`HIJAB_TILTS`): more likely with prayer and mosque attendance, among immigrants, among Sunni women, with age, and among converts. The tilts decide who covers; the published rates still decide how many. The generation fade applies to women born into Islam, so the overall third-generation rate is higher rather than lower, since most third-generation Muslim women are Black American converts and their daughters.
 
 Height depends on sex, ethnicity and birthplace. Improve these before quoting any result.
 
@@ -83,7 +85,7 @@ The Bay Area is not modeled separately for heights, prayer or conversion; those 
 Filters, in three tabs. Chip groups start on **Any**; tapping chips narrows to just those, and removing them all goes back to Any.
 - **Basics:** gender, age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
 - **Life:** marital status (never married / divorced, no kids / divorced with kids / widowed / married), height range, minimum education, and minimum income.
-- **Deen:** prays all 5 daily, goes to mosque weekly, sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
+- **Deen:** prays all 5 daily, goes to mosque weekly, wears hijab (greyed out unless the search is for sisters), sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
 
 ## Tests
 

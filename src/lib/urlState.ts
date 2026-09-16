@@ -40,6 +40,7 @@ export function toSearchParams({ filters, estimate }: SearchState): URLSearchPar
   if (filters.minIncome !== defaults.minIncome) params.set('income', String(filters.minIncome))
   if (filters.praysFiveDaily) params.set('prays', '1')
   if (filters.mosqueWeekly) params.set('mosque', '1')
+  if (filters.wearsHijab) params.set('hijab', '1')
   setList(params, 'sect', filters.sects, ALL_SECTS)
   if (filters.convert !== defaults.convert) params.set('convert', filters.convert)
   if (estimate !== 'realistic') params.set('estimate', estimate)
@@ -61,6 +62,7 @@ export function fromSearchParams(params: URLSearchParams): SearchState {
   if (INCOME_STEPS.includes(income)) filters.minIncome = income
   filters.praysFiveDaily = params.get('prays') === '1'
   filters.mosqueWeekly = params.get('mosque') === '1'
+  filters.wearsHijab = params.get('hijab') === '1'
   filters.sects = list(params.get('sect'), ALL_SECTS) ?? filters.sects
   filters.convert = oneOf(params.get('convert'), CONVERTS) ?? filters.convert
   return { filters, estimate: oneOf(params.get('estimate'), ESTIMATE_LEVELS) ?? 'realistic' }

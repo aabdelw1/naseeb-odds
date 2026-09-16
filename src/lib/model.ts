@@ -36,6 +36,8 @@ import {
 } from '../data/population'
 import {
   CONVERT_SHARE,
+  HIJAB,
+  HIJAB_TILTS,
   MOSQUE_WEEKLY,
   PRAYS_FIVE_DAILY,
   SECT_SHARES,
@@ -75,6 +77,11 @@ export interface Cell {
   praysFiveDaily: number
   /** Probability of attending a mosque weekly or more (adults only). */
   mosqueWeekly: number
+  /** Probability of wearing hijab in public all or most of the time; 0 for men and children. */
+  wearsHijab: number
+  /** The same, split by whether she converted; they average back to wearsHijab. */
+  wearsHijabConvert: number
+  wearsHijabBornMuslim: number
   /** Probability of being a convert. */
   convert: number
   /** Probability of having any earnings. */
@@ -116,10 +123,13 @@ function buildModel(): Cell[] {
   calibrateWeights(adults)
   const prayer = calibratePractice(adults, PRAYS_FIVE_DAILY)
   const mosque = calibratePractice(adults, MOSQUE_WEEKLY)
+  const hijab = calibrateHijab(adults, prayer, mosque)
   adults.forEach((cell, i) => {
     cell.praysFiveDaily = prayer[i]
     cell.mosqueWeekly = mosque[i]
+    cell.wearsHijab = hijab[i]
     cell.convert = CONVERT_SHARE[cell.nativity][cell.ethnicity]
+    splitHijabByConvert(cell)
   })
   assignEarnings(cells, adults)
   // US-born Muslims earn like US-born Americans of the same background (Pew 2013); the
@@ -170,6 +180,9 @@ function seedCells(): Cell[] {
                   weight,
                   praysFiveDaily: 0,
                   mosqueWeekly: 0,
+                  wearsHijab: 0,
+                  wearsHijabConvert: 0,
+                  wearsHijabBornMuslim: 0,
                   convert: 0,
                   earners: 0,
                   baseMedianIncome: 0,
@@ -404,6 +417,90 @@ function calibratePractice(adults: Cell[], rates: PracticeRates): number[] {
   ]
   rakeRates(adults, weights, logits, margins)
   return Array.from(logits, sigmoid)
+}
+
+/**
+ * Hijab, for women only. Pew publishes just the overall rate and a split by degree, so cells
+ * start from the overall rate tilted by HIJAB_TILTS — practice, generation, sect, converts and
+ * age — and raking then pulls the published rates back into line. The tilts decide who covers;
+ * the published rates decide how many.
+ */
+function calibrateHijab(adults: Cell[], prayer: number[], mosque: number[]): number[] {
+  const isWoman = (cell: Cell) => cell.sex === 'female'
+  const weights = Float64Array.from(adults, (c) => c.weight)
+  const womenWeight = adults.reduce((sum, c) => (isWoman(c) ? sum + c.weight : sum), 0)
+  const averageAmongWomen = (rates: number[]) =>
+    adults.reduce((sum, c, i) => (isWoman(c) ? sum + c.weight * rates[i] : sum), 0) / womenWeight
+  const prayerAverage = logit(averageAmongWomen(prayer))
+  const mosqueAverage = logit(averageAmongWomen(mosque))
+
+  const tilt = (cell: Cell, i: number) => {
+    const practice = (logit(prayer[i]) - prayerAverage + (logit(mosque[i]) - mosqueAverage)) / 2
+    const age = HIJAB_TILTS.byAge.reduce(
+      (shift, bracket) => (cell.band.min >= bracket.minAge ? bracket.shift : shift),
+      HIJAB_TILTS.byAge[0].shift,
+    )
+    // The generation fade applies to the women born into Islam; the converts beside them get
+    // the convert tilt instead. Third-generation cells are mostly converts, so weighting the
+    // two keeps those cells from being dragged down by a fade that isn't theirs.
+    const converts = CONVERT_SHARE[cell.nativity][cell.ethnicity]
+    const background = HIJAB_TILTS.byNativity[cell.nativity] * (1 - converts) + HIJAB_TILTS.convert * converts
+    return (
+      HIJAB_TILTS.practiceLink * practice +
+      background +
+      HIJAB_TILTS.bySect[cell.sect] +
+      age
+    )
+  }
+  const logits = Float64Array.from(adults, (c, i) => (isWoman(c) ? logit(HIJAB.overall) + tilt(c, i) : 0))
+
+  // Muslim women hold degrees far more often now (Pew 2024) than in the 2017 survey, so Pew's
+  // two published rates no longer average to its own overall rate here. Keep the gap between
+  // them and move both until they do.
+  const degreeGroup = (c: Cell) => (c.educationRank >= BACHELORS_RANK ? 'degree' : 'noDegree')
+  const degreeWeight = { degree: 0, noDegree: 0 }
+  for (const cell of adults) if (isWoman(cell)) degreeWeight[degreeGroup(cell)] += cell.weight
+  const degreeShares = {
+    degree: degreeWeight.degree / womenWeight,
+    noDegree: degreeWeight.noDegree / womenWeight,
+  }
+  const byDegree = shiftToAverage(HIJAB.byDegree, degreeShares, HIJAB.overall)
+
+  const margins: Margin<Cell>[] = [
+    { group: (c) => (isWoman(c) ? 'women' : null), targets: { women: HIJAB.overall } },
+    { group: (c) => (isWoman(c) ? degreeGroup(c) : null), targets: byDegree },
+  ]
+  rakeRates(adults, weights, logits, margins)
+  return adults.map((c, i) => (isWoman(c) ? sigmoid(logits[i]) : 0))
+}
+
+/**
+ * Splits a cell's hijab rate between converts and born Muslims. Converts and born Muslims live
+ * in the same cells, so the difference between them has to sit inside a cell rather than
+ * between cells; both rates still average back to the cell's own rate.
+ */
+function splitHijabByConvert(cell: Cell): void {
+  const converts = cell.convert
+  if (cell.wearsHijab <= 0 || converts <= 0 || converts >= 1) {
+    cell.wearsHijabConvert = cell.wearsHijab
+    cell.wearsHijabBornMuslim = cell.wearsHijab
+    return
+  }
+  // The generation fade describes families born into Islam losing the habit over generations,
+  // and a convert never inherited it, so hers is cancelled out. Without this, converts would
+  // look least likely to cover purely because most of them are third generation.
+  const shift = HIJAB_TILTS.convert - HIJAB_TILTS.byNativity[cell.nativity]
+  const mean = (base: number) => converts * sigmoid(base + shift) + (1 - converts) * sigmoid(base)
+  let lo = -20
+  let hi = 20
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2
+    if (mean(mid) < cell.wearsHijab) lo = mid
+    else hi = mid
+  }
+  const base = (lo + hi) / 2
+  cell.wearsHijabBornMuslim = sigmoid(base)
+  cell.wearsHijabConvert = sigmoid(base + shift)
 }
 
 function ageBracket(brackets: { minAge: number }[], age: number): number {

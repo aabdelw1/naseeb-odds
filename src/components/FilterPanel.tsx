@@ -139,7 +139,9 @@ export function FilterPanel({ filters, onChange }: Props) {
             label="Looking for"
             options={SEX_OPTIONS}
             value={filters.sex}
-            onChange={(sex) => update({ sex })}
+            // Hijab only applies to sisters, so leaving it set while it is greyed out would
+            // quietly keep filtering.
+            onChange={(sex) => update(sex === 'female' ? { sex } : { sex, wearsHijab: false })}
           />
         </Field>
 
@@ -242,6 +244,12 @@ export function FilterPanel({ filters, onChange }: Props) {
               checked={filters.mosqueWeekly}
               onChange={(mosqueWeekly) => update({ mosqueWeekly })}
             />
+            <Toggle
+              label="Wears hijab"
+              checked={filters.wearsHijab}
+              disabled={filters.sex !== 'female'}
+              onChange={(wearsHijab) => update({ wearsHijab })}
+            />
           </div>
         </Field>
 
@@ -263,7 +271,11 @@ export function FilterPanel({ filters, onChange }: Props) {
           />
         </Field>
 
-        <p className="hint">Prayer and mosque filters only count adults.</p>
+        <p className="hint">
+          {filters.sex === 'female'
+            ? 'Prayer, mosque and hijab filters only count adults.'
+            : 'Hijab needs Sisters under Looking for. Prayer and mosque filters only count adults.'}
+        </p>
       </TabPanel>
 
       <button
@@ -381,14 +393,22 @@ function ChipGroup<T extends string>({ label, options, selected, onChange }: Chi
 interface ToggleProps {
   label: string
   checked: boolean
+  /** Shown greyed out rather than removed, so the option is still discoverable. */
+  disabled?: boolean
   onChange: (checked: boolean) => void
 }
 
-function Toggle({ label, checked, onChange }: ToggleProps) {
+function Toggle({ label, checked, disabled = false, onChange }: ToggleProps) {
   return (
-    <label className="toggle">
+    <label className={disabled ? 'toggle is-disabled' : 'toggle'}>
       <span>{label}</span>
-      <input type="checkbox" role="switch" checked={checked} onChange={(e) => onChange(e.target.checked)} />
+      <input
+        type="checkbox"
+        role="switch"
+        checked={checked}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.checked)}
+      />
     </label>
   )
 }
