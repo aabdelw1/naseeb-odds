@@ -139,9 +139,9 @@ export function FilterPanel({ filters, onChange }: Props) {
             label="Looking for"
             options={SEX_OPTIONS}
             value={filters.sex}
-            // Hijab only applies to sisters, so leaving it set while it is greyed out would
-            // quietly keep filtering.
-            onChange={(sex) => update(sex === 'female' ? { sex } : { sex, wearsHijab: false })}
+            // Hijab never applies to a search for brothers, so don't leave it switched on
+            // behind a greyed-out toggle.
+            onChange={(sex) => update(sex === 'male' ? { sex, wearsHijab: false } : { sex })}
           />
         </Field>
 
@@ -247,7 +247,7 @@ export function FilterPanel({ filters, onChange }: Props) {
             <Toggle
               label="Wears hijab"
               checked={filters.wearsHijab}
-              disabled={filters.sex !== 'female'}
+              disabled={filters.sex === 'male'}
               onChange={(wearsHijab) => update({ wearsHijab })}
             />
           </div>
@@ -272,9 +272,11 @@ export function FilterPanel({ filters, onChange }: Props) {
         </Field>
 
         <p className="hint">
-          {filters.sex === 'female'
-            ? 'Prayer, mosque and hijab filters only count adults.'
-            : 'Hijab needs Sisters under Looking for. Prayer and mosque filters only count adults.'}
+          {filters.sex === 'male'
+            ? 'Hijab only applies to sisters. Prayer and mosque filters only count adults.'
+            : filters.sex === 'any'
+              ? 'Hijab narrows the sisters and leaves the brothers. These filters only count adults.'
+              : 'Prayer, mosque and hijab filters only count adults.'}
         </p>
       </TabPanel>
 

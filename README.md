@@ -85,7 +85,7 @@ The Bay Area is not modeled separately for heights, prayer or conversion; those 
 Filters, in three tabs. Chip groups start on **Any**; tapping chips narrows to just those, and removing them all goes back to Any.
 - **Basics:** gender, age range, ethnicity (Arab / Black / Desi / White / Other), and born in the US (immigrant / 2nd gen / 3rd gen+).
 - **Life:** marital status (never married / divorced, no kids / divorced with kids / widowed / married), height range, minimum education, and minimum income.
-- **Deen:** prays all 5 daily, goes to mosque weekly, wears hijab (greyed out unless the search is for sisters), sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
+- **Deen:** prays all 5 daily, goes to mosque weekly, wears hijab (narrows the sisters and leaves the brothers alone; greyed out only when the search is for brothers), sect (Sunni / Shia / Just Muslim / Other), and convert (born Muslim / convert).
 
 ## Tests
 

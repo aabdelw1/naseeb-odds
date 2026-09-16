@@ -28,12 +28,18 @@ describe('hijab', () => {
     expect(praying).toBeLessThan(1)
   })
 
-  it('counts nobody when brothers are being counted', () => {
-    expect(count({ wearsHijab: true, sex: 'male' })).toBe(0)
+  it('leaves a search for brothers alone', () => {
+    expect(count({ wearsHijab: true, sex: 'male' })).toBe(count({ sex: 'male' }))
   })
 
-  it('counts only women when either brothers or sisters would do', () => {
-    expect(count({ wearsHijab: true, sex: 'any' })).toBe(count({ wearsHijab: true, sex: 'female' }))
+  it('narrows the sisters but keeps every brother when either would do', () => {
+    const both = count({ wearsHijab: true, sex: 'any' })
+    const brothers = count({ sex: 'male' })
+    const sistersWearing = count({ wearsHijab: true, sex: 'female' })
+    // Each count is rounded on its own, so allow a person either way.
+    expect(Math.abs(both - (brothers + sistersWearing))).toBeLessThanOrEqual(2)
+    expect(both).toBeGreaterThan(sistersWearing)
+    expect(both).toBeLessThan(count({ sex: 'any' }))
   })
 
   it('leaves out children, who have no hijab rate', () => {

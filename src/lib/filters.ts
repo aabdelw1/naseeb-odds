@@ -65,7 +65,7 @@ export interface Filters {
   minIncome: number
   praysFiveDaily: boolean
   mosqueWeekly: boolean
-  /** Women only, so it matches nobody when brothers are being counted. */
+  /** Applies to women only; brothers in the same search are left alone. */
   wearsHijab: boolean
   /** Sects to include; empty matches nobody. */
   sects: Sect[]
@@ -169,9 +169,10 @@ export function countMatching(filters: Filters, estimate: EstimateLevel = 'reali
     const practices: number[] = []
     if (filters.praysFiveDaily) practices.push(practice(cell.praysFiveDaily))
     if (filters.mosqueWeekly) practices.push(practice(cell.mosqueWeekly))
-    // Men and children have no hijab probability, so they drop out here. Converts and born
-    // Muslims cover at different rates within the same cell, so follow the convert filter.
-    if (filters.wearsHijab) {
+    // Hijab only narrows the sisters: when brothers are in the pool too, they pass through
+    // untouched. Converts and born Muslims cover at different rates within the same cell, so
+    // follow the convert filter.
+    if (filters.wearsHijab && cell.sex === 'female') {
       const hijab =
         filters.convert === 'convert'
           ? cell.wearsHijabConvert
