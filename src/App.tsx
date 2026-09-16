@@ -8,6 +8,7 @@ import type { EstimateLevel } from './data/estimates'
 import { resultBucket, track, trackSettled } from './lib/analytics'
 import { countActive, countMatching, totalPopulation, type Filters } from './lib/filters'
 import { formatCount, formatPercent } from './lib/format'
+import { searchUrl, URL_UPDATE_DELAY_MS, writeSearchUrl } from './lib/urlSync'
 import { changedSettings, fromSearchParams, toSearchParams, type SearchState } from './lib/urlState'
 import { useIsVisible } from './lib/useIsVisible'
 import { useTweenedNumber } from './lib/useTweenedNumber'
@@ -34,16 +35,20 @@ export default function App() {
     if (settings > 0) track('shared-link-open', { settings })
   }, [initial])
 
+  // The address carries the search so links are shareable, but it is only rewritten once the
+  // search settles. Safari throws after about 100 history writes in 30 seconds, and dragging a
+  // slider changes the search on every frame, which used to crash the app mid-drag.
+  useEffect(() => {
+    const url = searchUrl({ filters, estimate }, window.location.pathname, window.location.search)
+    const timer = setTimeout(() => writeSearchUrl(url), URL_UPDATE_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [filters, estimate])
+
   const previousSearch = useRef<SearchState>(initial)
   useEffect(() => {
-    const search: SearchState = { filters, estimate }
-    const params = toSearchParams(search)
-    if (new URLSearchParams(window.location.search).has('debug')) params.set('debug', '')
-    const query = params.toString()
-    window.history.replaceState(null, '', query ? `${window.location.pathname}?${query}` : window.location.pathname)
-
     // Anonymous usage stats: which settings people change (sent once a slider settles) and
     // roughly how many people the search leaves.
+    const search: SearchState = { filters, estimate }
     const changes = changedSettings(previousSearch.current, search)
     previousSearch.current = search
     if (changes.length === 0) return

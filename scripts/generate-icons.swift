@@ -51,6 +51,9 @@ func previewCard() -> Data {
 let directory = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "public"
 let files: [(String, Data)] = [
   ("favicon-32.png", icon(32)),
+  // Google Search only shows a favicon that is square and a multiple of 48px.
+  ("favicon-48.png", icon(48)),
+  ("favicon-96.png", icon(96)),
   ("apple-touch-icon.png", icon(180)),
   ("icon-192.png", icon(192)),
   ("icon-512.png", icon(512)),

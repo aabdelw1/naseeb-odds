@@ -46,6 +46,16 @@ describe('SEO', () => {
     expect(sitemap).toContain(`<loc>${SITE}</loc>`)
   })
 
+  it('offers a favicon Google Search will show', () => {
+    // Google only shows a favicon that is square and a multiple of 48px, and also looks for
+    // /favicon.ico. A 32x32 icon alone leaves the generic globe in search results.
+    const shipped = Object.keys(import.meta.glob('../../public/*')).map((path) => path.split('/').pop())
+    const icons = [...html.matchAll(/<link rel="icon"[^>]*href="[^"]*?([\w.-]+)"/g)].map((match) => match[1])
+    expect(icons).toContain('favicon.ico')
+    expect(icons.some((icon) => /-(48|96|192)\.png$/.test(icon))).toBe(true)
+    for (const icon of icons) expect(shipped).toContain(icon)
+  })
+
   it('has a web app manifest with large icons', () => {
     const parsed = JSON.parse(manifest) as { name: string; icons: { sizes: string }[] }
     expect(parsed.name).toBe('Naseeb Odds')

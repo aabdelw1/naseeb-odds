@@ -628,6 +628,25 @@ body {
   display: none;
 }
 
+/* Shown instead of the app if a render ever fails, so the page is never left blank. */
+.crash {
+  margin: 48px auto;
+  max-width: 420px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.crash button {
+  margin-top: 12px;
+  padding: 10px 20px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .share-button--nudge {
     animation: none;

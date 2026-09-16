@@ -8,7 +8,11 @@
     <link rel="canonical" href="https://naseebodds.com/" />
     <meta name="theme-color" content="#1d2735" />
 
-    <!-- PNG icons: iPhones and link previews ignore SVG and data-URI favicons. -->
+    <!-- PNG icons: iPhones and link previews ignore SVG and data-URI favicons. Google Search only
+         shows a favicon that is square and a multiple of 48px, and looks for /favicon.ico too. -->
+    <link rel="icon" href="%BASE_URL%favicon.ico" sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="96x96" href="%BASE_URL%favicon-96.png" />
+    <link rel="icon" type="image/png" sizes="48x48" href="%BASE_URL%favicon-48.png" />
     <link rel="icon" type="image/png" sizes="32x32" href="%BASE_URL%favicon-32.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="%BASE_URL%apple-touch-icon.png" />
     <link rel="manifest" href="%BASE_URL%site.webmanifest" />
