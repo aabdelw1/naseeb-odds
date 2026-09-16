@@ -107,7 +107,8 @@ export default function App() {
       {/* On phones the results sit below the filters, so keep the count on screen. */}
       <div className="count-bar" hidden={countVisible}>
         <strong aria-hidden="true">{displayedCount}</strong>
-        <span aria-hidden="true">Muslims · 1 icon = {formatCount(layout.unit)}</span>
+        {/* Kept short: the bubble is one line, and it has to fit on a 320px phone. */}
+        <span aria-hidden="true">Muslims · {formatPercent(count / total)}</span>
         <ShareButton text={shareText} placement="count bar" />
       </div>
     </div>
