@@ -52,9 +52,11 @@ describe('SEO', () => {
     // text a crawler can read away from the home page.
     expect(html).toMatch(/<section id="about"/)
     expect(html).toContain('id="about-back"')
-    // The class the stylesheet hides it behind is only added once the app runs, so a reader or
-    // crawler without JavaScript still gets the text.
-    expect(aboutPageSource).toContain("classList.add('has-about-page')")
+    // A reader without JavaScript has no way to open Learn more, so the text shows in place.
+    expect(html).toMatch(/<noscript>[\s\S]*?#about \{[\s\S]*?display: block;[\s\S]*?<\/noscript>/)
+    // Hiding belongs to the stylesheet, which loads in the head. Hiding it from the app instead
+    // shows the FAQ for a moment on every load, before the bundle runs.
+    expect(aboutPageSource).not.toMatch(/classList\.add\(.(has-about-page)/)
   })
 
   it('offers a favicon Google Search will show', () => {

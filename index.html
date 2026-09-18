@@ -99,8 +99,15 @@
   <body>
     <div id="root"></div>
 
-    <!-- Plain HTML so search engines can read it without running the app. The app turns this
-         into a separate view reached from "Learn more"; with no JavaScript it just sits here. -->
+    <!-- Plain HTML so search engines can read it without running the app. The stylesheet hides
+         it until "Learn more" opens it; with no JavaScript to open it, show it in place. -->
+    <noscript>
+      <style>
+        #about {
+          display: block;
+        }
+      </style>
+    </noscript>
     <section id="about" class="about" aria-labelledby="about-title">
       <button type="button" id="about-back" class="about-back" hidden>← Back to the calculator</button>
       <h2 id="about-title">What is Naseeb Odds?</h2>

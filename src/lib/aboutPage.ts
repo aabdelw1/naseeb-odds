@@ -10,8 +10,6 @@ export const ABOUT_HASH = '#about'
 export function setupAboutPage(): void {
   const back = document.getElementById('about-back')
   if (back) back.hidden = false
-  // Only hide anything once this runs, so the text is never lost when the app doesn't load.
-  document.body.classList.add('has-about-page')
 
   let wasShowing = false
   const apply = () => {
