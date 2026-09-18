@@ -550,10 +550,63 @@ body {
 }
 
 .footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   margin-top: 40px;
   text-align: center;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.learn-more {
+  padding: 7px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.85rem;
+  text-decoration: none;
+}
+
+.learn-more:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+/*
+ * The about and FAQ text is a second view, opened from Learn more. It only ever hides once the
+ * app has started, so without JavaScript the text stays where search engines expect it.
+ */
+body.has-about-page .about {
+  display: none;
+}
+
+body.showing-about .about {
+  display: block;
+  padding-top: 28px;
+}
+
+body.showing-about #root {
+  display: none;
+}
+
+.about-back {
+  margin-bottom: 8px;
+  padding: 7px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.about-back:hover {
+  border-color: var(--gold);
+  color: var(--gold);
 }
 
 @media (min-width: 761px) {

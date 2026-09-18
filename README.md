@@ -130,6 +130,7 @@ Spreading `changed` over `DEFAULT_FILTERS` reproduces the count.
 - **Readable content:** a plain-HTML "What is Naseeb Odds?" section with an FAQ sits below the app, so search engines can read it without running JavaScript. [`src/test/seo.test.ts`](src/test/seo.test.ts) keeps the FAQ structured data in sync with it.
 - **Crawlers:** `public/robots.txt` and `public/sitemap.xml` point them at https://naseebodds.com/.
 - **Shareable searches:** the page address holds the search (e.g. `?sex=female&age=23-28&prays=1`), and the gold **Share my odds** button (also in the phone count bar) sends that link, so every share opens the same search. The address is rewritten only once the search has been still for `URL_UPDATE_DELAY_MS`: Safari refuses more than about 100 history writes in 30 seconds, and a dragged slider changes the search on every frame.
+- **Learn more page:** the about and FAQ text stays as plain HTML in `index.html`, where crawlers read it without running the app, and [`src/lib/aboutPage.ts`](src/lib/aboutPage.ts) turns it into a second view at `#about` with a back button. It is only hidden once the app has started, so with no JavaScript the text still renders under the calculator.
 - **Icons and preview card:** generated with `swift scripts/generate-icons.swift public`, then `node scripts/make-favicon-ico.mjs public/favicon-48.png public/favicon.ico` for the `.ico`. Google Search only shows a favicon that is square and a multiple of 48px, and also looks for `/favicon.ico`, so both ship.
 
 To get indexed:

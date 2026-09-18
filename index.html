@@ -99,8 +99,10 @@
   <body>
     <div id="root"></div>
 
-    <!-- Plain HTML so search engines can read it without running the app. -->
-    <section class="about" aria-labelledby="about-title">
+    <!-- Plain HTML so search engines can read it without running the app. The app turns this
+         into a separate view reached from "Learn more"; with no JavaScript it just sits here. -->
+    <section id="about" class="about" aria-labelledby="about-title">
+      <button type="button" id="about-back" class="about-back" hidden>← Back to the calculator</button>
       <h2 id="about-title">What is Naseeb Odds?</h2>
       <p>Naseeb Odds is a just-for-fun Muslim marriage odds calculator. It starts with every Muslim in the United States and narrows the pool as you add what you're looking for: brothers or sisters, age, ethnicity, height, marital status, education, income, prayer, sect and more. Every filter shrinks the circle of people, so you can see how rare your perfect match really is.</p>
 

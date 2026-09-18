@@ -20,6 +20,11 @@ describe('the address for a search', () => {
   it('keeps the debug flag once it is switched on', () => {
     expect(searchUrl(search(), '/', '?debug')).toContain('debug')
   })
+
+  it('keeps the reader on the Learn more page while the search is written', () => {
+    expect(searchUrl(search({ sex: 'female' }), '/', '', '#about')).toBe('/?sex=female#about')
+    expect(searchUrl(search(), '/', '', '#about')).toBe('/#about')
+  })
 })
 
 describe('writing the address', () => {
@@ -43,6 +48,6 @@ describe('writing the address', () => {
 
   it('is never called straight from a filter change', () => {
     expect(appSource).not.toMatch(/history\.replaceState/)
-    expect(appSource).toMatch(/setTimeout\(\(\) => writeSearchUrl/)
+    expect(appSource).toMatch(/setTimeout\([\s\S]{0,400}writeSearchUrl\([\s\S]{0,200}URL_UPDATE_DELAY_MS/)
   })
 })

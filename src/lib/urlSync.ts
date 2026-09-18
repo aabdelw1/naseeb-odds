@@ -10,12 +10,15 @@ import { toSearchParams, type SearchState } from './urlState'
  */
 export const URL_UPDATE_DELAY_MS = 400
 
-/** The address for a search, keeping the debug flag when it is already switched on. */
-export function searchUrl(search: SearchState, pathname: string, currentSearch: string): string {
+/**
+ * The address for a search, keeping the debug flag when it is already switched on and whatever
+ * hash is on the address, so writing the search doesn't close the Learn more page.
+ */
+export function searchUrl(search: SearchState, pathname: string, currentSearch: string, hash = ''): string {
   const params = toSearchParams(search)
   if (new URLSearchParams(currentSearch).has('debug')) params.set('debug', '')
   const query = params.toString()
-  return query ? `${pathname}?${query}` : pathname
+  return `${query ? `${pathname}?${query}` : pathname}${hash}`
 }
 
 /** Rewrites the address, never throwing: losing a shareable link beats losing the page. */

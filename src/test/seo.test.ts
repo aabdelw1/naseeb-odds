@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import html from '../../index.html?raw'
+import aboutPageSource from '../lib/aboutPage.ts?raw'
 import manifest from '../../public/site.webmanifest?raw'
 import robots from '../../public/robots.txt?raw'
 import sitemap from '../../public/sitemap.xml?raw'
@@ -44,6 +45,16 @@ describe('SEO', () => {
   it('lets crawlers find the sitemap', () => {
     expect(robots).toContain(`Sitemap: ${SITE}sitemap.xml`)
     expect(sitemap).toContain(`<loc>${SITE}</loc>`)
+  })
+
+  it('keeps the about and FAQ text in the page, with Learn more only changing how it is shown', () => {
+    // Moving it out of index.html, or hiding it before the app starts, would take the only
+    // text a crawler can read away from the home page.
+    expect(html).toMatch(/<section id="about"/)
+    expect(html).toContain('id="about-back"')
+    // The class the stylesheet hides it behind is only added once the app runs, so a reader or
+    // crawler without JavaScript still gets the text.
+    expect(aboutPageSource).toContain("classList.add('has-about-page')")
   })
 
   it('offers a favicon Google Search will show', () => {

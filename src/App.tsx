@@ -5,6 +5,7 @@ import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
 import { ShareButton } from './components/ShareButton'
 import type { EstimateLevel } from './data/estimates'
+import { ABOUT_HASH } from './lib/aboutPage'
 import { resultBucket, track, trackSettled } from './lib/analytics'
 import { countActive, countMatching, totalPopulation, type Filters } from './lib/filters'
 import { formatCount, formatPercent } from './lib/format'
@@ -39,8 +40,12 @@ export default function App() {
   // search settles. Safari throws after about 100 history writes in 30 seconds, and dragging a
   // slider changes the search on every frame, which used to crash the app mid-drag.
   useEffect(() => {
-    const url = searchUrl({ filters, estimate }, window.location.pathname, window.location.search)
-    const timer = setTimeout(() => writeSearchUrl(url), URL_UPDATE_DELAY_MS)
+    const timer = setTimeout(() => {
+      // Built at write time, not when the timer was set: the reader may have opened Learn more
+      // in between, and that hash has to survive.
+      const { pathname, search, hash } = window.location
+      writeSearchUrl(searchUrl({ filters, estimate }, pathname, search, hash))
+    }, URL_UPDATE_DELAY_MS)
     return () => clearTimeout(timer)
   }, [filters, estimate])
 
@@ -104,8 +109,13 @@ export default function App() {
       </main>
 
       <footer className="footer">
-        Estimates from Pew Research Center, ISPU American Muslim Poll (2025), US Religion Census (2020), BLS and CDC
-        NHANES. Just for fun.
+        <a className="learn-more" href={ABOUT_HASH}>
+          What is this? Learn more
+        </a>
+        <span>
+          Estimates from Pew Research Center, ISPU American Muslim Poll (2025), US Religion Census (2020), BLS and CDC
+          NHANES. Just for fun.
+        </span>
         {DEBUG_ENABLED && <DebugButton filters={filters} estimate={estimate} />}
       </footer>
 
