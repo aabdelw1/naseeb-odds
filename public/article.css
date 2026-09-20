@@ -1,0 +1,155 @@
+/* Shared by the plain-HTML articles in public/. They are served as-is, outside the app build,
+   so this file is linked directly instead of going through Vite. */
+:root {
+  --bg: #1d2735;
+  --panel: #263243;
+  --panel-border: #33425a;
+  --text: #e8edf4;
+  --muted: #93a1b5;
+  --accent: #5ec8a8;
+  --gold: #f2c26b;
+
+  color-scheme: dark;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0 20px 64px;
+  line-height: 1.65;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 0;
+  flex-wrap: wrap;
+}
+
+.brand {
+  color: var(--text);
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.brand span {
+  color: var(--gold);
+}
+
+.cta {
+  padding: 8px 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.cta:hover {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+
+h1 {
+  margin: 16px 0 8px;
+  font-size: 2rem;
+  line-height: 1.2;
+}
+
+h2 {
+  margin: 36px 0 8px;
+  font-size: 1.3rem;
+}
+
+h3 {
+  margin: 26px 0 4px;
+  font-size: 1.05rem;
+}
+
+p,
+li {
+  color: var(--muted);
+}
+
+.lede {
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+strong {
+  color: var(--text);
+}
+
+a {
+  color: var(--accent);
+}
+
+table {
+  width: 100%;
+  margin: 16px 0;
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+th,
+td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--panel-border);
+  text-align: left;
+  color: var(--muted);
+}
+
+th {
+  color: var(--text);
+  font-weight: 600;
+}
+
+td.num,
+th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.note {
+  margin: 28px 0;
+  padding: 14px 18px;
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  background: var(--panel);
+  font-size: 0.9rem;
+}
+
+.more {
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--panel-border);
+}
+
+.more ul {
+  padding-left: 18px;
+}
+
+footer {
+  margin-top: 40px;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
