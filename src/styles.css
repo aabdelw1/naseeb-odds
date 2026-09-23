@@ -394,43 +394,75 @@ body {
   color: var(--muted);
 }
 
-/* The optional "I'm a brother / sister / just browsing" question; gone once answered. */
-.searcher {
+/* The one-time question on landing. Closing it answers it: don't ask again. */
+.ask {
+  margin: auto;
+  padding: 26px 28px 24px;
+  max-width: min(340px, calc(100vw - 32px));
+  border: 1px solid var(--panel-border);
+  border-radius: 18px;
+  background: var(--panel);
+  color: var(--text);
+  text-align: center;
+  position: relative;
+  animation: ask-in 180ms ease-out;
+}
+
+.ask::backdrop {
+  background: rgba(10, 15, 24, 0.66);
+}
+
+.ask h2 {
+  margin: 0 0 16px;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
+
+.ask-options {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 8px;
-  margin-top: 14px;
-  padding: 10px 14px;
-  border: 1px dashed var(--panel-border);
-  border-radius: 14px;
 }
 
-.searcher-label {
-  font-size: 0.82rem;
-  color: var(--muted);
+.ask-option {
+  padding: 11px 16px;
+  border: 1px solid var(--panel-border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 150ms, border-color 150ms, color 150ms;
 }
 
-.searcher-options {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
+.ask-option:hover {
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
-.searcher-skip {
+.ask-close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  padding: 6px 8px;
   border: 0;
   background: none;
-  padding: 4px 6px;
   color: var(--muted);
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
-.searcher-skip:hover {
+.ask-close:hover {
   color: var(--text);
+}
+
+@keyframes ask-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
 }
 
 .count-caption strong {
@@ -765,6 +797,10 @@ body.showing-about #root {
 
 @media (prefers-reduced-motion: reduce) {
   .share-button--nudge {
+    animation: none;
+  }
+
+  .ask {
     animation: none;
   }
 

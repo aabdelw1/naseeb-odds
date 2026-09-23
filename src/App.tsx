@@ -104,8 +104,6 @@ export default function App() {
             Muslims in {place} · <strong>{formatPercent(count / total)}</strong> of the ummah here
           </div>
 
-          {asking && <SearcherPrompt onAnswer={answer} />}
-
           <EstimateSwitch value={estimate} onChange={setEstimate} bayArea={bayArea} />
 
           <div className="result-actions">
@@ -136,6 +134,8 @@ export default function App() {
         </span>
         {DEBUG_ENABLED && <DebugButton filters={filters} estimate={estimate} />}
       </footer>
+
+      {asking && <SearcherPrompt onAnswer={answer} />}
 
       {/* On phones the results sit below the filters, so keep the count on screen. */}
       <div className="count-bar" hidden={countVisible}>
