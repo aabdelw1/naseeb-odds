@@ -1,0 +1,27 @@
+# The search-log Worker. Deploy with `npm run log:deploy` (needs Node 22: run `nvm use` first).
+name = "naseeb-odds-log"
+main = "index.ts"
+compatibility_date = "2026-09-01"
+workers_dev = true
+
+[vars]
+ALLOWED_ORIGINS = "https://naseebodds.com"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "naseeb-odds-searches"
+database_id = "c966382e-cc86-40f1-8c3c-f3dbfaf38648"
+
+# Spam protection per connection address, which is never stored. Well above what a real visitor
+# can send: the app only logs a search once it has sat still for two seconds.
+[[ratelimits]]
+name = "LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+# Off, so Cloudflare keeps no request logs for this Worker; the rows in D1 are the only record.
+[observability]
+enabled = false

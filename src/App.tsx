@@ -3,12 +3,14 @@ import { DEBUG_ENABLED, DebugButton } from './components/DebugButton'
 import { EstimateSwitch } from './components/EstimateSwitch'
 import { FilterPanel } from './components/FilterPanel'
 import { layoutCircle, PeopleCircle, PersonIcon, PersonSymbol } from './components/PeopleCircle'
+import { SearcherPrompt, useSearcher } from './components/SearcherPrompt'
 import { ShareButton } from './components/ShareButton'
 import type { EstimateLevel } from './data/estimates'
 import { ABOUT_HASH } from './lib/aboutPage'
 import { resultBucket, track, trackSettled } from './lib/analytics'
 import { countActive, countMatching, totalPopulation, type Filters } from './lib/filters'
 import { formatCount, formatPercent } from './lib/format'
+import { logSearch, SEARCH_SETTLE_MS } from './lib/searchLogClient'
 import { searchUrl, URL_UPDATE_DELAY_MS, writeSearchUrl } from './lib/urlSync'
 import { changedSettings, fromSearchParams, toSearchParams, type SearchState } from './lib/urlState'
 import { useIsVisible } from './lib/useIsVisible'
@@ -61,6 +63,20 @@ export default function App() {
     trackSettled('search', 'search', { result: resultBucket(count), filters: activeFilters }, 2000)
   }, [filters, estimate, count, activeFilters])
 
+  // The anonymous search log (worker/). A search counts once it has sat still, and the one the
+  // page opened with doesn't count at all: whoever shared the link chose it, not this visitor.
+  const { searcher, asking, answer } = useSearcher()
+  const searcherRef = useRef(searcher)
+  useEffect(() => {
+    searcherRef.current = searcher
+  }, [searcher])
+  const initialQuery = useMemo(() => toSearchParams(initial).toString(), [initial])
+  useEffect(() => {
+    if (toSearchParams({ filters, estimate }).toString() === initialQuery) return
+    const timer = setTimeout(() => logSearch(searcherRef.current, estimate, filters, count), SEARCH_SETTLE_MS)
+    return () => clearTimeout(timer)
+  }, [filters, estimate, count, initialQuery])
+
   const shareText =
     activeFilters > 0
       ? ` ${formatCount(count)} total for me`
@@ -87,6 +103,8 @@ export default function App() {
           <div className="count-caption">
             Muslims in {place} · <strong>{formatPercent(count / total)}</strong> of the ummah here
           </div>
+
+          {asking && <SearcherPrompt onAnswer={answer} />}
 
           <EstimateSwitch value={estimate} onChange={setEstimate} bayArea={bayArea} />
 
